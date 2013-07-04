@@ -1,4 +1,4 @@
-M65C02 Microprocessor Core
+M16C5x Microprocessor Core
 =======================
 
 Copyright (C) 2013, Michael A. Morris <morrisma@mchsi.com>.
