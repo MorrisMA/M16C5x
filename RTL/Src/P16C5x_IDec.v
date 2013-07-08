@@ -38,15 +38,15 @@
 `timescale 1ns / 1ps
 
 ///////////////////////////////////////////////////////////////////////////////
-// Company: 		M. A. Morris & Associates
-// Engineer: 		Michael A. Morris
+// Company:         M. A. Morris & Associates
+// Engineer:        Michael A. Morris
 // 
 // Create Date:     18:05:57 08/18/2009 
-// Design Name: 	PIC16C5x Verilog Processor Model
+// Design Name:     PIC16C5x Verilog Processor Model
 // Module Name:     C:/ISEProjects/ISE10.1i/F16C5x/PIC16C5x_IDecode 
 // Project Name:    C:/ISEProjects/ISE10.1i/F16C5x.ise
-// Target Devices:	N/A 
-// Tool versions:	ISE 10.1i SP3 
+// Target Devices:  N/A 
+// Tool versions:   ISE 10.1i SP3 
 //
 // Description:
 //
@@ -96,11 +96,11 @@
 //  If dErr is asserted, a NOP operation is loaded into the ALU_Op, dIR, and
 //  the Err output is asserted.
 //
-// Dependencies:	None 
+// Dependencies:    None 
 //
 // Revision: 
 //
-// 	0.00 	09H18	MAM	    File Created
+//  0.00    09H18   MAM     File Created
 //
 //  1.00    13F23   MAM     Changed input data port from IR to DI. When com-
 //                          bined with the resulting changes to the upper level

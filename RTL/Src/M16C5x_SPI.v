@@ -98,6 +98,9 @@
 //
 //  1.00    13F26   MAM     Included ClkEn in the transmit FIFO write enable and
 //                          receive FIFO read enable signals.
+//
+//  1.10    13F06   MAM     Changed polarity of chip select outputs from active
+//                          low to active high.
 //  
 // Additional Comments:
 //
@@ -121,7 +124,7 @@ module M16C5x_SPI #(
     input   [7:0] DI,           // Data Input (Cntl Reg/Transmit FIFO Data In)
     output  [7:0] DO,           // Data Output (Receive FIFO Data Out)
     
-    output  [1:0] nCS,          // SPI Interface Chip Select (active low)
+    output  [1:0] CS,           // SPI Interface Chip Select (active high)
     output  SCK,                // SPI Interface Serial Clock (idle set by Mode)
     output  MOSI,               // SPI Interface Master Out/Slave In Serial Out
     input   MISO,               // SPI Interface Master In/Slave Out Serial In
@@ -236,7 +239,7 @@ SPIxIF  MSTR (
             .FWE(FWE),              // Receive FIFO Write Enable
             .RD(RD),                // Receive Data
 
-            .SS(SlaveSelect),       // SPI Slave Select
+            .SS(SS),                // SPI Slave Select
             .SCK(SCK),              // SPI Serial Clock
             .MOSI(MOSI),            // SPI Master Out/Slave In
             .MISO(MISO)             // SPI Master In/Slave Out
@@ -244,7 +247,7 @@ SPIxIF  MSTR (
         
 //  Generate Slave Device Chip Select based on SS and Sel bit in CR
         
-assign nCS[0] = ((~Sel) ? ~SS : ~0);
-assign nCS[1] = (( Sel) ? ~SS : ~0);
+assign CS[0] = ((~Sel) ? SS : 0);
+assign CS[1] = (( Sel) ? SS : 0);
     
 endmodule

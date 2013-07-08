@@ -91,6 +91,11 @@
 //                          tools, the parameter can be set to a value in the
 //                          range of the supported devices.
 //
+//  1.40    13G07   MAM     Corrected error with the test conditional pertaining
+//                          to BTFSC/BTFSS instructions. Qualifier was using
+//                          ALU_Op[1:0] instead of ALU_Op[7:6]. Under certain
+//                          combinations, results were correct.
+//
 // Additional Comments:
 //
 ////////////////////////////////////////////////////////////////////////////////
@@ -324,7 +329,7 @@ assign Tst = ALU_Op[8];
 always @(*)
 begin
     Skip <= WE_SLEEP | WE_PCL
-            | ((Tst) ? ((ALU_Op[1] & ALU_Op[0]) ? g    : Z_Tst)
+            | ((Tst) ? ((ALU_Op[7] & ALU_Op[6]) ? g    : Z_Tst)
                      : ((GOTO | CALL | RETLW)   ? 1'b1 : 1'b0 ));
 end
 

@@ -63,9 +63,14 @@
 //  standard programming languages and support tools can be used to ease the 
 //  development of sophisticated FPGA-based products.
 //
-// Dependencies:    P16C5x.v
+// Dependencies:    M16C5x_ClkGen.v
+//                      ClkGen.xaw
+//                  P16C5x.v
 //                      P16C5x_IDec.v
 //                      P16C5x_ALU.v
+//                  M16C5x_SPI.v
+//                      DPSFmnCE.v
+//                      SPIxIF.v
 //
 // Revision:
 //
@@ -83,6 +88,7 @@ module M16C5x #(
     parameter pRAMB_Init = "Src/RAMB.coe"   // RAM B initial value file (64x8)
 )(
     input   ClkIn,                      // External Clk - drives 4x DCM
+    input   Clk_UART,                   // External UART Reference Clk
 
     input   nMCLR,                      // Master Clear Input
     input   nT0CKI,                     // Timer 0 Clk Input
@@ -94,6 +100,7 @@ module M16C5x #(
     input   RD,                         // UART RD Input
     output  nRTS,                       // UART Request To Send (active low) Out
     input   nCTS,                       // UART Clear to Send (active low) Input
+    output  DE,                         // UART RS-485 Driver Enable
     
     output  [2:0] nCS,                  // SPI Chip Select (active low) Output
     output  SCK,                        // SPI Serial Clock
@@ -126,8 +133,16 @@ reg     [7:0] IO_DI;                    // IO Data Input bus
 reg     [7:0] TRISA, TRISB;             // IO Ports
 reg     [7:0] PORTA, PORTB;
 
+wire    [1:0] CS;                       // Chip select outputs of the SPI Mstr
+wire    SPI_SCK;                        // SPI SCK for internal components
+wire    SPI_MOSI, SPI_MISO;
+
 wire    [7:0] SPI_DO;                   // Output Data Bus of SPI Master module
-wire    SS, TF_EF, TF_FF, RF_EF, RF_FF; // SPI Module Status Signals
+wire    TF_EF, TF_FF, RF_EF, RF_FF;     // SPI Module Status Signals
+
+wire    SSP_MISO;                       // SSP UART MISO signal
+wire    RTS, CTS;                       // SSP UART Modem Control Signals
+wire    IRQ;                            // SSP UART Interrupt Request Signal
 
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -148,7 +163,7 @@ M16C5x_ClkGen   ClkGen (
 
 //  Generate Clock Enable (Clk/2)
 
-always @(posedge Clk) ClkEn <= #1 ((Rst) ? 0 : ~ClkEn);
+always @(posedge Clk or posedge Rst) ClkEn <= #1 ((Rst) ? 0 : ~ClkEn);
 
 //  Register Inputs and connect to CPU
 
@@ -164,7 +179,7 @@ P16C5x  CPU (
             .POR(Rst), 
             .Clk(Clk), 
             .ClkEn(ClkEn),
-
+            
             .MCLR(Rst), 
             .T0CKI(T0CKI), 
             .WDTE(WDTE), 
@@ -232,6 +247,16 @@ begin
         PROM_DO <= #1 PROM[PROM_Addrs];
 end
 
+//always @(posedge <clock>) begin
+//    if (<enableA>) begin
+//        if (<write_enableA>)
+//            <ram_name>[<addressA>] <= <input_dataA>;
+//        <output_dataA> <= <ram_name>[<addressA>];
+//    end
+//    if (<enableB>)
+//        <output_dataB> <= <ram_name>[<addressB>];
+//end
+
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  M16C5x I/O
@@ -257,21 +282,23 @@ end
 always @(*)
 begin
     casex({RE_PORTA, RE_PORTB, RE_PORTC})
-        3'b1xx  : IO_DI <= {RD, ~nCTS, 1'b1, SS, RF_FF, RF_EF, TF_FF, TF_EF};
+        3'b1xx  : IO_DI <= {IRQ, CTS, RTS, DE, RF_FF, RF_EF, TF_FF, TF_EF};
         3'b01x  : IO_DI <= PORTB;
         3'b001  : IO_DI <= SPI_DO;
         default : IO_DI <= 0;
     endcase
 end 
 
-assign TD      = ~PORTA[7];
-assign nRTS    = ~PORTA[6];
+//assign TD      = ~PORTA[7];
+//assign nRTS    = ~PORTA[6];
 assign nCSO[2] = ~PORTA[5];
 assign nCSO[1] = ~PORTA[4];
 assign nCSO[0] = ~PORTA[3];
 assign nWait   = ~PORTA[2];
 
 // Instantiate the M16C5x SPI Interface module
+
+assign SPI_MISO = ((CS[1]) ? SSP_MISO : MISO);
 
 M16C5x_SPI  SPI (
                 .Rst(Rst), 
@@ -285,10 +312,10 @@ M16C5x_SPI  SPI (
                 .DI(IO_DO), 
                 .DO(SPI_DO), 
                 
-                .nCS(nCS[1:0]), 
+                .CS(CS[1:0]), 
                 .SCK(SCK), 
-                .MOSI(MOSI), 
-                .MISO(MISO), 
+                .MOSI(SPI_MOSI), 
+                .MISO(SPI_MISO), 
                 
                 .SS(SS), 
                 .TF_FF(TF_FF), 
@@ -297,6 +324,43 @@ M16C5x_SPI  SPI (
                 .RF_EF(RF_EF)
             );
             
+assign nCS[0] = ~CS[0];
+assign nCS[1] = ~CS[1];
 assign nCS[2] = 1'b1;
+
+assign MOSI = SPI_MOSI;
+
+//  Instantiate Global Clock Buffer for driving the SPI Clock to internal nodes
+
+BUFG    BUF1 (
+            .I(SCK), 
+            .O(SPI_SCK)
+        );
+
+//  Instantiate UART with an NXP LPC213x/LPC214x SSP-compatible interface
+
+assign CTS = ~nCTS;
+
+M16C5x_UART UART (
+                .Rst(Rst), 
+                
+                .Clk_UART(Clk_UART), 
+                
+                .SSEL(CS[1]), 
+                .SCK(SPI_SCK), 
+                .MOSI(SPI_MOSI), 
+                .MISO(SSP_MISO), 
+              
+                .TxD(TD), 
+                .RTS(RTS), 
+                .RxD(RD), 
+                .CTS(CTS), 
+                
+                .DE(DE),
+                
+                .IRQ(IRQ)
+            );
+            
+assign nRTS = ~RTS;
 
 endmodule

@@ -4,14 +4,16 @@ M16C5x Microprocessor Core
 Copyright (C) 2013, Michael A. Morris <morrisma@mchsi.com>.
 All Rights Reserved.
 
-Released under LGPL.
+Released under various licenses including LGPL. Files shown in bold face are 
+released in source form for non-commercial use only; commercial licensing 
+available.
 
 General Description
 -------------------
 
 This project demonstrates the use of a PIC16C5x-compatible core as an FPGA-
 based processor. The core provided is instruction set compatible, but it is 
-not a cycle accurate model of a particular PIC microcomputer. It implements 
+not a cycle accurate model of any particular PIC microcomputer. It implements 
 the 12-bit instruction set, the timer 0 module, the pre-scaler, and the watchdog 
 timer.
 
@@ -26,10 +28,10 @@ similarly supported. Thus, the core's user is able to map the TRIS and I/O
 port registers in a manner appropriate to the intended application.
 
 Read-modify-operations on the I/O ports do not generate read strobes. Read 
-strobes of the three I/O ports are generated only if the ports are being read. 
-Similarly, the write enables for the three I/O ports are asserted whenever the 
-ports are updated. This occurs during MOVWF instructions, or during read-
-modify-write operations such as XORF, MOVF, etc.
+strobes of the three I/O ports are generated only if the ports are being read 
+using MOVF xxx,0 instructions. Similarly, the write enables for the three I/O 
+ports are asserted whenever the ports are updated. This occurs during MOVWF 
+instructions, or during read- modify-write operations such as XORF, MOVF, etc.
 
 Implementation
 --------------
@@ -47,8 +49,22 @@ and memory initialization files:
                 TF_Init.coe - Transmit FIFO Initialization file
                 RF_Init.coe - Receive FIFO Initialization file
             SPIxIF.v        - Configurable Master SPI I/F with clock Generator
+        **M16C5x_UART.v**    - UART with Serial Interface
+            **SSPx_Slv.v**   - SSP-compatible Slave Interface
+            **SSP_UART.v**   - SSP-compatible UART
+                re1ce.v     - Rising Edge Clock Domain Crossing Synchronizer
+                DPSFmnCE.v  - onfigurable Depth/Width LUT-based Synch FIFO
+                    UART_TF.coe - UART Transmit FIFO Initialization file
+                    UART_RF.coe - UART Receive FIFO Initialization file
+                **UART_BRG.v**    - UART Baud Rate Generator
+                **UART_TXSM.v**   - UART Transmit State Machine (includes SR)
+                **UART_RXSM.v**   - UART Receive State Machine (includes SR)
+                **UART_RTO.v**    - UART Receive Timeout Generator
+                **UART_INT.v**    - UART Interrupt Generator
 
         M16C5x_Test.coe     - M16C5x Test Program Memory Initialization File
+        M16C5x_Tst2.coe     - M16C5x Test #2 Program Memory Initialization File
+        M16C5x_Tst3.coe     - M16C5x Test #3 Program Memory Initialization File
 
         M16C5x.ucf          - M16C5x User Constraint File
 
@@ -74,8 +90,8 @@ Synthesis
 The primary objective of the M16C5x is to synthesize a processor core, 4kW of 
 program memory, a buffered SPI master, and a buffered UART into a Xilinx 
 XC3S50A-4VQG100I FPGA. The present implementation includes the P16C5x core, 
-4kW of program memory, a dual-channel SPI Master I/F, and some registers to 
-act as placeholders for the UART. (The complete UART module will be added soon.)
+4kW of program memory, a dual-channel SPI Master I/F, and an SSP-compatible 
+UART supporting baud rates from 3M bps to 1200 bps.
 
 Using ISE 10.1i SP3, the implementation results for an XC3S50A-4VQ100I are as 
 follows:
@@ -128,3 +144,15 @@ fastest LED is approximately equal to 29.4912 MHz / 6208, or 4.750 kHz.
 Work will continue to verify the testbench results with the FPGA. The next 
 release should include the UART, and test the ability of the core to 
 send/receive data using the FIFOs at rates of 115,200 baud or greater.
+
+###Release 2.0
+
+In this release, the UART has been addded. An update has been made to the SPI 
+I/F Master function; update correct fault with the framing of SPI Mode 3 
+frames with shift lengths greater than 1 byte. A correction, not fully tested 
+or verified, was made to the P16C5x core to correct anomalous behavior for 
+BTFSC/BTFSS instructions.
+
+UART integrated with the Release 1.0 core. Verification of the integrated 
+interface is underway. UART is used in a commercial product, and is provided 
+in source form for non-commercial use only.
