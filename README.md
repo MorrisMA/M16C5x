@@ -4,9 +4,9 @@ M16C5x Microprocessor Core
 Copyright (C) 2013, Michael A. Morris <morrisma@mchsi.com>.
 All Rights Reserved.
 
-Released under various licenses including LGPL. Files shown in bold face are 
-released in source form for non-commercial use only; commercial licensing 
-available.
+Released under various licenses including LGPL. Files marked by double 
+asterisks (**) are released in source form for non-commercial use only; 
+commercial licensing available.
 
 General Description
 -------------------
@@ -96,28 +96,30 @@ UART supporting baud rates from 3M bps to 1200 bps.
 Using ISE 10.1i SP3, the implementation results for an XC3S50A-4VQ100I are as 
 follows:
 
-    Number of Slice FFs:            343 of 1408      24%
-    Number of 4-input LUTs:         671 of 1408      47%
-    Number of Occupied Slices:      445 of  704      63%
-    Total Number of 4-input LUTs:   717 of 1408      50%
+    Number of Slice FFs:                595 of 1408      42%
+    Number of 4-input LUTs:            1277 of 1408      90%
+    Number of Occupied Slices:          695 of  704      98%
+    Total Number of 4-input LUTs:      1325 of 1408      94%
 
-                    Logic:          596
-                    Route-Through:   46
-                    16x1 RAMs:        8
-                    Dual-Port RAMs:  34
-                    32x1 RAMs:       32
-                    Shift Registers:  1
+                    Logic:             1042
+                    Route-Through:       48
+                    16x1 RAMs:            8
+                    Dual-Port RAMs:     194
+                    32x1 RAMs:           32
+                    Shift Registers:      1
 
-    Number of BUFGMUXs:             3   of 24        12%
-    Number of DCMs:                 1   of  2        50%
-    Number of RAMB16BWEs            3   of  3       100%
+    Number of BUFGMUXs:                   5 of   24      20%
+    Number of DCMs:                       1 of    2      50%
+    Number of RAMB16BWEs                  3 of    3     100%
 
-    Best Case Achievable:           12.389 ns (0.111 ns Setup, 0.704 ns Hold)
+    Best Case Achievable:           12.438 ns (0.062 ns Setup, 0.650 ns Hold)
 
 Status
 ------
 
-Design and initial verification is complete.
+Design and initial verification is complete. Verification using ISim, MPLAB, 
+and a board with an XC3S200AN-4VQG100I FPGA, various oscillators, SEEPROMs, 
+and RS-232/RS-485 transceivers is underway.
 
 Release Notes
 -------------
