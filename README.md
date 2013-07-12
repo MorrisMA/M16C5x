@@ -69,7 +69,7 @@ and memory initialization files:
 Verilog tesbench files are included for the processor core, the FIFO, and the 
 SPI modules.
 
-    tb_M16C5x.Verilog       - testbench for the soft-core processor module
+    tb_M16C5x.v             - testbench for the soft-core processor module
     tb_P16C5x.v             - testbench for the processor core module
     tb_DPSFmnCE.v           - testbench for the LUT-based FIFO module
     tb_SPIxIF.v             - testbench for the SPI Master Interface module
