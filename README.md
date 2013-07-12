@@ -157,7 +157,9 @@ BTFSC/BTFSS instructions.
 UART integrated with the Release 1.0 core. Verification of the integrated 
 interface is underway.
 
-###Release 2.1 Testing with an M16C5x core processor program assembled using 
+###Release 2.1
+
+Testing with an M16C5x core processor program assembled using 
 MPLAB and ISIM showed that polling of the UART status register to determine 
 whether the transmit FIFO was empty or not (using the iTFE interrupt flag) 
 would clear the generated interrupt flags before they had actually been 
