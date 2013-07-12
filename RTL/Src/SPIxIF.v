@@ -211,7 +211,16 @@
 //                          implementation which reloaded a fixed value, 0, and
 //                          terminated on a variable value. The variable decode
 //                          of the counter for CE apparently caused an issue in
-//                          simulation that the new down counter resolves. 
+//                          simulation that the new down counter resolves.
+//
+//  1.30    13G06   MAM     Removed code previously commented out. Corrected the
+//                          SCK equation. A Rst_SCK was being generated at the
+//                          end of every 8 bits. This introduced a discontinuity
+//                          in SCK which does not allow frames greater than 8
+//                          bits in length to be transmitted. With the removal
+//                          the incorrect conditional logic in Rst_SCK, the SSP
+//                          Slave and UART modules operate in either SPI Mode 0
+//                          or Mode 3.  
 //
 // Additional Comments:
 //
@@ -338,8 +347,6 @@ end
 //  Serial SPI Clock Generator
 //
 
-//assign Rst_Cntr = Rst | CE;      
-
 always @(posedge Clk)
 begin
     if(Rst)
@@ -362,7 +369,7 @@ end
 assign CE = (Ld | (~|CE_Cntr));
 
 assign CE_SCK  = CE & SS; // Clock starts with Slave Select Strobe
-assign Rst_SCK = Rst | Ld | (TC_BitCnt & CE_OSR) | (COS_SCK_Lvl & ~SS);
+assign Rst_SCK = Rst | Ld | (COS_SCK_Lvl & ~SS) | (TC_BitCnt & CE_OSR & ~DAV);
 
 always @(posedge Clk)
 begin
@@ -428,13 +435,10 @@ assign TC_BitCnt = ~|BitCnt;
 //  SPI Slave Select Generator
 //
 
-//assign CE_SS = Ld | (TC_BitCnt & CE_OSR);
-
 always @(posedge Clk)
 begin
     if(Rst)
         SS <= #1 0;
-//    else if(CE_SS)
     else if(Ld_OSR)
         SS <= #1 DAV;
 end
@@ -447,7 +451,6 @@ always @(posedge Clk)
 begin
     if(Rst)
         RdEn <= #1 0;
-//    else if(CE_SS)
     else if(Ld_OSR)
         RdEn <= #1 ((DAV) ? TD[8] : 0);
 end

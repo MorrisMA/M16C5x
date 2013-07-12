@@ -30,7 +30,7 @@ file_000=no
 [OTHER_FILES]
 file_000=no
 [FILE_INFO]
-file_000=M16C5x_Tst2.asm
+file_000=M16C5x_Tst3.asm
 [SUITE_INFO]
 suite_guid={6B3DAA78-59C1-46DD-B6AA-DBDAE4E06484}
 suite_state=generate-absolute-code

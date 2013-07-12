@@ -1,12 +1,10 @@
-M16C5x Microprocessor Core
+M16C5x Soft-Core Microcomputer
 =======================
 
 Copyright (C) 2013, Michael A. Morris <morrisma@mchsi.com>.
 All Rights Reserved.
 
-Released under various licenses including LGPL. Files marked by double 
-asterisks (**) are released in source form for non-commercial use only; 
-commercial licensing available.
+Released under LGPL.
 
 General Description
 -------------------
@@ -49,18 +47,18 @@ and memory initialization files:
                 TF_Init.coe - Transmit FIFO Initialization file
                 RF_Init.coe - Receive FIFO Initialization file
             SPIxIF.v        - Configurable Master SPI I/F with clock Generator
-        **M16C5x_UART.v**    - UART with Serial Interface
-            **SSPx_Slv.v**   - SSP-compatible Slave Interface
-            **SSP_UART.v**   - SSP-compatible UART
+        M16C5x_UART.v       - UART with Serial Interface
+            SSPx_Slv.v      - SSP-compatible Slave Interface
+            SSP_UART.v      - SSP-compatible UART
                 re1ce.v     - Rising Edge Clock Domain Crossing Synchronizer
                 DPSFmnCE.v  - onfigurable Depth/Width LUT-based Synch FIFO
                     UART_TF.coe - UART Transmit FIFO Initialization file
                     UART_RF.coe - UART Receive FIFO Initialization file
-                **UART_BRG.v**    - UART Baud Rate Generator
-                **UART_TXSM.v**   - UART Transmit State Machine (includes SR)
-                **UART_RXSM.v**   - UART Receive State Machine (includes SR)
-                **UART_RTO.v**    - UART Receive Timeout Generator
-                **UART_INT.v**    - UART Interrupt Generator
+                UART_BRG.v  - UART Baud Rate Generator
+                UART_TXSM.v - UART Transmit State Machine (includes SR)
+                UART_RXSM.v - UART Receive State Machine (includes SR)
+                UART_RTO.v  - UART Receive Timeout Generator
+                UART_INT.v  - UART Interrupt Generator
 
         M16C5x_Test.coe     - M16C5x Test Program Memory Initialization File
         M16C5x_Tst2.coe     - M16C5x Test #2 Program Memory Initialization File
@@ -71,6 +69,7 @@ and memory initialization files:
 Verilog tesbench files are included for the processor core, the FIFO, and the 
 SPI modules.
 
+    tb_M16C5x.Verilog       - testbench for the soft-core processor module
     tb_P16C5x.v             - testbench for the processor core module
     tb_DPSFmnCE.v           - testbench for the LUT-based FIFO module
     tb_SPIxIF.v             - testbench for the SPI Master Interface module
@@ -96,13 +95,13 @@ UART supporting baud rates from 3M bps to 1200 bps.
 Using ISE 10.1i SP3, the implementation results for an XC3S50A-4VQ100I are as 
 follows:
 
-    Number of Slice FFs:                595 of 1408      42%
-    Number of 4-input LUTs:            1277 of 1408      90%
-    Number of Occupied Slices:          695 of  704      98%
-    Total Number of 4-input LUTs:      1325 of 1408      94%
+    Number of Slice FFs:                613 of 1408      43%
+    Number of 4-input LUTs:            1283 of 1408      91%
+    Number of Occupied Slices:          704 of  704     100%
+    Total Number of 4-input LUTs:      1330 of 1408      94%
 
-                    Logic:             1042
-                    Route-Through:       48
+                    Logic:             1048
+                    Route-Through:       47
                     16x1 RAMs:            8
                     Dual-Port RAMs:     194
                     32x1 RAMs:           32
@@ -112,7 +111,7 @@ follows:
     Number of DCMs:                       1 of    2      50%
     Number of RAMB16BWEs                  3 of    3     100%
 
-    Best Case Achievable:           12.438 ns (0.062 ns Setup, 0.650 ns Hold)
+    Best Case Achievable:           12.452 ns (0.048 ns Setup, 0.704 ns Hold)
 
 Status
 ------
@@ -156,5 +155,36 @@ or verified, was made to the P16C5x core to correct anomalous behavior for
 BTFSC/BTFSS instructions.
 
 UART integrated with the Release 1.0 core. Verification of the integrated 
-interface is underway. UART is used in a commercial product, and is provided 
-in source form for non-commercial use only.
+interface is underway.
+
+###Release 2.1 Testing with an M16C5x core processor program assembled using 
+MPLAB and ISIM showed that polling of the UART status register to determine 
+whether the transmit FIFO was empty or not (using the iTFE interrupt flag) 
+would clear the generated interrupt flags before they had actually been 
+captured and shifted in the SSP response to the core.
+
+This indicated a clock domain crossing issue in the interrupt clearing logic. 
+This release fixes that issue. Previous use of the UART does not poll the USR, 
+so this problem does not manisfest itself in a reasonable amount of time, if 
+ever. In other words, the synchronization fault has been present all along in 
+the implementation, but the module's usage in the application (or testbench) 
+did not present the conditions under which the fault manifests.
+
+The correction required registering the USR data on the SSP clock domain, and 
+qualifying the clearing of the interrupt flags on the basis of whether the 
+flag is set in both domains when the USR is read. The addition of the register 
+reduced the logic utilization, and only a small additonal time delay was 
+incurred. The resulting design is still able to fit into a Spartan 3A XC3S50A-
+4VQG100I FPGA.
+
+Modified the UART Baud Rate Generator. Removed the fixed 16x12 ROM that 
+provided the pre-scaler and divider constants for a fixed set of 16 baud 
+rates. Added a 12-bit, write-only register, BRR - Baud Rate Register, that can 
+be used to set the baud rate from 1/16 of the processor clock. With a 
+58.9824 MHz oscillator, the baud rate can range from 3.6864Mbps down to 900 bps. 
+Set the default baud rate to 9600 for a 58.9824 MHz UART clock.
+
+Utilization for a XC3S50A-4VQG100I FPGA is 100%. The 128 byte LUT-based 
+receive FIFO can be reduced to accomodate some additional functions. Synthesis 
+and MAP/PAR able to implement the design. There is also some place holder 
+logic that can be used for other purposes.

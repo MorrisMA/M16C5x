@@ -1,3 +1,40 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+//  Copyright 2008-2013 by Michael A. Morris, dba M. A. Morris & Associates
+//
+//  All rights reserved. The source code contained herein is publicly released
+//  under the terms and conditions of the GNU Lesser Public License. No part of
+//  this source code may be reproduced or transmitted in any form or by any
+//  means, electronic or mechanical, including photocopying, recording, or any
+//  information storage and retrieval system in violation of the license under
+//  which the source code is released.
+//
+//  The source code contained herein is free; it may be redistributed and/or
+//  modified in accordance with the terms of the GNU Lesser General Public
+//  License as published by the Free Software Foundation; either version 2.1 of
+//  the GNU Lesser General Public License, or any later version.
+//
+//  The source code contained herein is freely released WITHOUT ANY WARRANTY;
+//  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+//  PARTICULAR PURPOSE. (Refer to the GNU Lesser General Public License for
+//  more details.)
+//
+//  A copy of the GNU Lesser General Public License should have been received
+//  along with the source code contained herein; if not, a copy can be obtained
+//  by writing to:
+//
+//  Free Software Foundation, Inc.
+//  51 Franklin Street, Fifth Floor
+//  Boston, MA  02110-1301 USA
+//
+//  Further, no use of this source code is permitted in any form or means
+//  without inclusion of this banner prominently in any derived works.
+//
+//  Michael A. Morris
+//  Huntsville, AL
+//
+////////////////////////////////////////////////////////////////////////////////
+
 `timescale 1ns / 1ps
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -5,10 +42,10 @@
 // Engineer:        Michael A. Morris
 //
 // Create Date:     19:16:35 05/10/2008
-// Design Name:     LTAS 
-// Module Name:     C:/XProjects/ISE10.1i/LTAS/tb_UART_BRG.v
-// Project Name:    LTAS 
-// Target Devices:  XC3S700AN-5FFG484I 
+// Design Name:     Synchronous Serial Peripheral (SSP) Interface UART 
+// Module Name:     ../VerilogCoponentsLib/SSP_UART/tb_UART_BRG.v
+// Project Name:    Verilog Components Library
+// Target Devices:  XC3S50A-4VQG100I, XC3S20A-4VQG100I, XC3S700AN-4FFG484I 
 // Tool versions:   ISE 10.1i SP3 
 //
 // Description: This test bench is intended to test the BRG module for the SSP 
@@ -58,14 +95,22 @@ initial begin
     Baud = 0;
 
     // Wait 100 ns for global reset to finish
-    #100;
+    #101;
  
     Rst = 0;
     
     // Add stimulus here
     
     
-    #100;
+    @(posedge Clk);
+    @(posedge Clk);
+    @(posedge Clk);
+    @(posedge Clk);
+    @(posedge Clk);
+    @(posedge Clk);
+    @(posedge Clk);
+    @(posedge Clk);
+    
     @(posedge Clk)    #1 Baud = 1;
     @(negedge CE_16x) #1 Baud = 2;
     @(negedge CE_16x) #1 Baud = 3;
@@ -94,7 +139,7 @@ end
 //  Clocks
 //
 
-always #5 Clk = ~Clk;
+always #10.416 Clk = ~Clk;
   
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -119,9 +164,9 @@ begin
         4'b1010 : {Div, PS} <= 12'b0001_0111_1100; // Div =  24; PS = 13
         4'b1011 : {Div, PS} <= 12'b0010_1111_1100; // Div =  48; PS = 13
         4'b1100 : {Div, PS} <= 12'b0101_1111_1100; // Div =  96; PS = 13
-        4'b1101 : {Div, PS} <= 12'b1011_1111_1100; // Div =  92; PS = 13
-        4'b1110 : {Div, PS} <= 12'b0111_1111_1100; // Div = 384; PS = 13
-        4'b1111 : {Div, PS} <= 12'b1111_1111_1100; // Div = 768; PS = 13
+        4'b1101 : {Div, PS} <= 12'b1011_1111_1100; // Div = 192; PS = 13
+        4'b1110 : {Div, PS} <= 12'b0111_1111_1100; // Div = 128; PS = 13
+        4'b1111 : {Div, PS} <= 12'b1111_1111_1100; // Div = 256; PS = 13
     endcase
 end
 

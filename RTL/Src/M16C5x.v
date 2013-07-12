@@ -83,7 +83,7 @@
 module M16C5x #(
     parameter pWDT_Size  = 20,          // Use 20 for synthesis and 10 for Sim.
     parameter pAddrsLen  = 12,          // User Program ROM address width
-    parameter pUserProg  = "Src/M16C5x_Tst2.coe",   // Tst Pgm file: 4096 x 12
+    parameter pUserProg  = "Src/M16C5x_Tst3.coe",   // Tst Pgm file: 4096 x 12
     parameter pRAMA_Init = "Src/RAMA.coe",  // RAM A initial value file ( 8x8)
     parameter pRAMB_Init = "Src/RAMB.coe"   // RAM B initial value file (64x8)
 )(
@@ -291,10 +291,10 @@ end
 
 //assign TD      = ~PORTA[7];
 //assign nRTS    = ~PORTA[6];
-assign nCSO[2] = ~PORTA[5];
-assign nCSO[1] = ~PORTA[4];
-assign nCSO[0] = ~PORTA[3];
-assign nWait   = ~PORTA[2];
+assign nCSO[2] = 1;
+assign nCSO[1] = 1;
+assign nCSO[0] = ~CS[0];
+assign nWait   = ~CS[1];
 
 // Instantiate the M16C5x SPI Interface module
 
@@ -344,7 +344,7 @@ assign CTS = ~nCTS;
 M16C5x_UART UART (
                 .Rst(Rst), 
                 
-                .Clk_UART(Clk_UART), 
+                .Clk_UART(Clk), 
                 
                 .SSEL(CS[1]), 
                 .SCK(SPI_SCK), 

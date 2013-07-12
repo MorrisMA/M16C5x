@@ -1,3 +1,40 @@
+////////////////////////////////////////////////////////////////////////////////
+//
+//  Copyright 2008-2013 by Michael A. Morris, dba M. A. Morris & Associates
+//
+//  All rights reserved. The source code contained herein is publicly released
+//  under the terms and conditions of the GNU Lesser Public License. No part of
+//  this source code may be reproduced or transmitted in any form or by any
+//  means, electronic or mechanical, including photocopying, recording, or any
+//  information storage and retrieval system in violation of the license under
+//  which the source code is released.
+//
+//  The source code contained herein is free; it may be redistributed and/or
+//  modified in accordance with the terms of the GNU Lesser General Public
+//  License as published by the Free Software Foundation; either version 2.1 of
+//  the GNU Lesser General Public License, or any later version.
+//
+//  The source code contained herein is freely released WITHOUT ANY WARRANTY;
+//  without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+//  PARTICULAR PURPOSE. (Refer to the GNU Lesser General Public License for
+//  more details.)
+//
+//  A copy of the GNU Lesser General Public License should have been received
+//  along with the source code contained herein; if not, a copy can be obtained
+//  by writing to:
+//
+//  Free Software Foundation, Inc.
+//  51 Franklin Street, Fifth Floor
+//  Boston, MA  02110-1301 USA
+//
+//  Further, no use of this source code is permitted in any form or means
+//  without inclusion of this banner prominently in any derived works.
+//
+//  Michael A. Morris
+//  Huntsville, AL
+//
+////////////////////////////////////////////////////////////////////////////////
+
 `timescale 1ns / 1ps
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -8,7 +45,7 @@
 // Design Name:     Synchronous Serial Peripheral (SSP) Interface UART 
 // Module Name:     ../VerilogCoponentsLib/SSP_UART/SSP_UART.v
 // Project Name:    Verilog Components Library
-// Target Devices:  XC3S700AN-5FFG484I 
+// Target Devices:  XC3S50A-4VQG100I, XC3S20A-4VQG100I, XC3S700AN-4FFG484I 
 // Tool versions:   ISE 10.1i SP3 
 //
 // Description: This module integrates the various elements of a simplified 
@@ -90,6 +127,10 @@
 //                          module can used along with other SSP-compatible
 //                          modules in the same FPGA. Corrected minor encoding
 //                          error for RS/TS fields.
+//
+//  2.10    13G10   MAM     Adjusted baud rate table to support Profibus rates
+//                          from 3M down to 187.5k, and standard baud rates from
+//                          1200 to 230.4k baud.
 //
 // Additional Comments:
 //
@@ -194,8 +235,8 @@
 //
 //  BAUD[3:0] - Serial Baud Rate (48 MHz Reference Clock, 16x UART)
 //
-//   4'b0000 -  1500 kbps,  4'b1000 - 38.4 kbps
-//   4'b0001 -  1000 kbps,  4'b1001 - 28.8 kbps
+//   4'b0000 -  3000 kbps,  4'b1000 - 38.4 kbps
+//   4'b0001 -  1500 kbps,  4'b1001 - 28.8 kbps
 //   4'b0010 -   500 kbps,  4'b1010 - 19.2 kbps
 //   4'b0011 - 187.5 kbps,  4'b1011 - 14.4 kbps
 //   4'b0100 - 230.4 kbps,  4'b1100 -  9.6 kbps
@@ -235,7 +276,8 @@ module SSP_UART #(
     input   SSP_SCK,                // Synchronous Serial Port Serial Clock
     input   [2:0] SSP_RA,           // SSP Register Address
     input   SSP_WnR,                // SSP Command
-    input   SSP_EOC,                // SSP End-Of-Cycle
+    input   SSP_En,                 // SSP Start Data Transfer Phase (Bits 11:0)
+    input   SSP_EOC,                // SSP End-Of-Cycle (Bit 0)
     input   [11:0] SSP_DI,          // SSP Data In
     output  reg [11:0] SSP_DO,      // SSP Data Out
     
@@ -326,8 +368,8 @@ localparam pRFCnt = 7;   // Rx Count:            {0, RFCnt[(pRFLen + 4):0]}
     wire    [(pRFLen + 4):0] RFCnt; // RX FIFO Count
     
     reg     [ 7:0] TDR;             // Transmit Data Register
-    wire    [11:0] RDR, USR;        // Receive Data Register, UART Status Reg
-    reg     [11:0] UCR, SPR;        // UART Control Register, Scratch Pad Reg
+    wire    [11:0] RDR;             // Receive Data Register, UART Status Reg
+    reg     [11:0] UCR, USR, SPR;   // UART Control, Status, & Scratch Pad Regs
     reg     [ 7:0] RTFThr;          // UART Rx/Tx FIFO Threshold Register
     
     wire    [1:0] MD;               // UCR: Operating Mode
@@ -344,10 +386,11 @@ localparam pRFCnt = 7;   // Rx Count:            {0, RFCnt[(pRFLen + 4):0]}
     wire    RTSi, CTSi;             // USR: RTS Input, CTS Input
     reg     [1:0] RS, TS;           // USR: Rcv Status, Xmt Status
     wire    iRTO;                   // USR: Receive Timeout Interrupt
-    wire    iRDA;                   // USR: Receive Data Available Interrupt
+    wire    iRHF;                   // USR: Receive Half Full Interrupt
     wire    iTHE;                   // USR: Transmit Half Empty Interrupt
     wire    iTFE;                   // USR: Transmit FIFO Empty Interrupt
     
+    reg     En;                     // delayed SSP_En (1 SCK period)
     wire    Clr_Int;                // Clear Interrupt Flags - read of USR
     
     wire    WE_SPR;                 // Write Enable: Scratch Pad Register
@@ -431,7 +474,7 @@ begin
     if(Rst_IRQ)
         IRQ <= 0;
     else if(~IRQ)
-        IRQ <= #1 IE & (iTFE | iTHE | iRDA | iRTO);
+        IRQ <= #1 IE & (iTFE | iTHE | iRHF | iRTO);
 end
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -439,14 +482,12 @@ end
 //  Write UART Control Register
 //
 
-assign WE_UCR = SSP_WE & Sel_UCR;
-
 always @(negedge SCK or posedge Rst)
 begin
     if(Rst)
         UCR <= #1 0;
-    else if(WE_UCR)
-        UCR <= #1 SSP_DI;
+    else if(Sel_UCR)
+        UCR <= #1 ((SSP_WE) ? SSP_DI : USR);
 end
 
 //  Assign UCR Fields
@@ -479,29 +520,55 @@ case(FMT)
     4'b1111 : {Len, NumStop, ParEn, Par} <= {1'b1, 1'b1, 1'b1, 2'b01};   // 7E2
 endcase
 
-//  Baud Rate Generator's PS and Div for defined Baud Rates (48 MHz Oscillator)
-
-always @(Baud)
-begin
-    case(Baud)
-        4'b0000 : {PS, Div} <= {4'h0, 8'h01}; // PS= 1; Div=  2; BR=1.5M
-        4'b0001 : {PS, Div} <= {4'h0, 8'h02}; // PS= 1; Div=  3; BR=1.0M
-        4'b0010 : {PS, Div} <= {4'h0, 8'h05}; // PS= 1; Div=  6; BR=500.0k
-        4'b0011 : {PS, Div} <= {4'h0, 8'h0F}; // PS= 1; Div= 16; BR=187.5k
-        4'b0100 : {PS, Div} <= {4'hC, 8'h00}; // PS=13; Div=  1; BR=230.4k
-        4'b0101 : {PS, Div} <= {4'hC, 8'h01}; // PS=13; Div=  2; BR=115.2k
-        4'b0110 : {PS, Div} <= {4'hC, 8'h02}; // PS=13; Div=  3; BR= 76.8k
-        4'b0111 : {PS, Div} <= {4'hC, 8'h03}; // PS=13; Div=  4; BR= 57.6k
-        4'b1000 : {PS, Div} <= {4'hC, 8'h05}; // PS=13; Div=  6; BR= 38.4k
-        4'b1001 : {PS, Div} <= {4'hC, 8'h07}; // PS=13; Div=  8; BR= 28.8k
-        4'b1010 : {PS, Div} <= {4'hC, 8'h0B}; // PS=13; Div= 12; BR= 19.2k
-        4'b1011 : {PS, Div} <= {4'hC, 8'h0F}; // PS=13; Div= 16; BR= 14.4k
-        4'b1100 : {PS, Div} <= {4'hC, 8'h17}; // PS=13; Div= 24; BR=  9.6k
-        4'b1101 : {PS, Div} <= {4'hC, 8'h2F}; // PS=13; Div= 48; BR=  4.8k
-        4'b1110 : {PS, Div} <= {4'hC, 8'h5F}; // PS=13; Div= 96; BR=  2.4k
-        4'b1111 : {PS, Div} <= {4'hC, 8'hBF}; // PS=13; Div=192; BR=  1.2k
-    endcase
-end
+//////  Baud Rate Generator's PS and Div for defined Baud Rates (48 MHz Oscillator)
+////
+////always @(Baud)
+////begin
+////    case(Baud)
+////        // Profibus Baud Rates
+////        4'b0000 : {PS, Div} <= {4'h0, 8'h00}; // PS= 1; Div=  1; BR=3.0M
+////        4'b0001 : {PS, Div} <= {4'h0, 8'h01}; // PS= 1; Div=  2; BR=1.5M
+////        4'b0010 : {PS, Div} <= {4'h0, 8'h05}; // PS= 1; Div=  6; BR=500.0k
+////        4'b0011 : {PS, Div} <= {4'h0, 8'h0F}; // PS= 1; Div= 16; BR=187.5k
+////        // Standard Baud Rates
+////        4'b0100 : {PS, Div} <= {4'hC, 8'h00}; // PS=13; Div=  1; BR=230.4k
+////        4'b0101 : {PS, Div} <= {4'hC, 8'h01}; // PS=13; Div=  2; BR=115.2k
+////        4'b0110 : {PS, Div} <= {4'hC, 8'h02}; // PS=13; Div=  3; BR= 76.8k
+////        4'b0111 : {PS, Div} <= {4'hC, 8'h03}; // PS=13; Div=  4; BR= 57.6k
+////        4'b1000 : {PS, Div} <= {4'hC, 8'h05}; // PS=13; Div=  6; BR= 38.4k
+////        4'b1001 : {PS, Div} <= {4'hC, 8'h07}; // PS=13; Div=  8; BR= 28.8k
+////        4'b1010 : {PS, Div} <= {4'hC, 8'h0B}; // PS=13; Div= 12; BR= 19.2k
+////        4'b1011 : {PS, Div} <= {4'hC, 8'h0F}; // PS=13; Div= 16; BR= 14.4k
+////        4'b1100 : {PS, Div} <= {4'hC, 8'h17}; // PS=13; Div= 24; BR=  9.6k
+////        4'b1101 : {PS, Div} <= {4'hC, 8'h2F}; // PS=13; Div= 48; BR=  4.8k
+////        4'b1110 : {PS, Div} <= {4'hC, 8'h5F}; // PS=13; Div= 96; BR=  2.4k
+////        4'b1111 : {PS, Div} <= {4'hC, 8'hBF}; // PS=13; Div=192; BR=  1.2k
+////    endcase
+////end
+//
+////  Baud Rate Generator's PS and Div for defined Baud Rates (58.9824 MHz)
+//
+//always @(Baud)
+//begin
+//    case(Baud)
+//        4'b0000 : {PS, Div} <= {4'h0, 8'h03}; // PS= 1; Div=  4; BR=921.6k
+//        4'b0001 : {PS, Div} <= {4'h0, 8'h07}; // PS= 1; Div=  8; BR=460.8k
+//        4'b0010 : {PS, Div} <= {4'h0, 8'h0F}; // PS= 1; Div= 16; BR=230.4k
+//        4'b0011 : {PS, Div} <= {4'h0, 8'h1F}; // PS= 1; Div= 32; BR=115.2k
+//        4'b0100 : {PS, Div} <= {4'h0, 8'h3F}; // PS= 1; Div= 64; BR= 57.6k
+//        4'b0101 : {PS, Div} <= {4'h0, 8'h5F}; // PS= 1; Div= 96; BR= 38.4k
+//        4'b0110 : {PS, Div} <= {4'h0, 8'h7F}; // PS= 1; Div=128; BR= 28.8k
+//        4'b0111 : {PS, Div} <= {4'h0, 8'hBF}; // PS= 1; Div=192; BR= 19.2k
+//        4'b1000 : {PS, Div} <= {4'h0, 8'hFF}; // PS= 1; Div=256; BR= 14.4k
+//        4'b1001 : {PS, Div} <= {4'h1, 8'hBF}; // PS= 2; Div=192; BR=  9.6k
+//        4'b1010 : {PS, Div} <= {4'h1, 8'hFF}; // PS= 2; Div=256; BR=  7.2k
+//        4'b1011 : {PS, Div} <= {4'h3, 8'hBF}; // PS= 4; Div=192; BR=  4.8k
+//        4'b1100 : {PS, Div} <= {4'h3, 8'hFF}; // PS= 4; Div=256; BR=  3.6k
+//        4'b1101 : {PS, Div} <= {4'h7, 8'hBF}; // PS= 8; Div=192; BR=  2.4k
+//        4'b1110 : {PS, Div} <= {4'h7, 8'hFF}; // PS= 8; Div=256; BR=  1.8k
+//        4'b1111 : {PS, Div} <= {4'hF, 8'hBF}; // PS=16; Div=192; BR=  1.2k
+//    endcase
+//end
 
 //  Receive Timeout Character Frame Length
 
@@ -560,18 +627,48 @@ begin
     endcase
 end
 
-assign USR = {MD, RTSi, CTSi, RS, TS, iRTO, iRDA, iTHE, iTFE};
+always @(posedge SCK)
+begin
+    if(Rst)
+        USR <= #1 0;
+    else
+        USR <= #1 {MD, RTSi, CTSi, RS, TS, iRTO, iRHF, iTHE, iTFE};
+end
 
 //  Read UART Status Register
 
+always @(posedge SCK)
+begin
+    if(Rst)
+        En <= #1 0;
+    else
+        En <= #1 SSP_En;
+end
+
+//  Generate Clr_Int on rising edge of SSP_En if Sel_USR asserted
+//      change clock domains from SCK to Clk (UART)
+
 re1ce   RED1 (
-            .den(Sel_USR),
-            .din(~SCK), 
+            .den(Sel_USR & (SSP_En & ~En) & |USR[3:0]),
+            .din(SCK), 
             .clk(Clk),
             .rst(Rst), 
             .trg(),
             .pls(Clr_Int)
         );
+
+///////////////////////////////////////////////////////////////////////////////
+//
+//  BRR - Baud Rate Register
+//
+
+always @(posedge SCK)
+begin
+    if(Rst)
+        {PS, Div} <= #1 {4'h1, 8'hBF};  // Defaults to 9.6k baud
+    else if(Sel_USR)
+        {PS, Div} <= #1 ((SSP_WE) ? SSP_DI : {PS, Div});
+end
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -953,15 +1050,20 @@ UART_RTO    TMR (
 UART_INT    INT (
                 .Rst(Rst), 
                 .Clk(Clk), 
+                
                 .TF_HF(TF_HF), 
                 .TF_EF(TF_EF), 
                 .RF_HF(RF_HF), 
                 .RF_EF(RF_EF),
+                
                 .RTO(RTO), 
+                
                 .Clr_Int(Clr_Int),
+                .USR(USR[3:0]),
+                
                 .iTFE(iTFE), 
                 .iTHE(iTHE), 
-                .iRDA(iRDA), 
+                .iRHF(iRHF), 
                 .iRTO(iRTO)
             );
 

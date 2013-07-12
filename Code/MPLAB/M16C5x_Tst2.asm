@@ -59,14 +59,17 @@ DelayLoop		EQU		ScratchPadRam+0
 ;-------------------------------------------------------------------------------
 Start			BTFSS   Status,3	;; Test PD (STATUS.3), if 1, ~SLEEP restart
                 GOTO    SleepRestart   	;; SLEEP restart, continue test program
-                MOVLW   0x07    		;; load OPTION
+                MOVLW   0x07    	;; load OPTION
                 OPTION
                 CLRW            	;; clear working register
                 TRIS	PortA       ;; load W into port control registers
                 TRIS	PortB
                 TRIS	PortC
 ;
-                GOTO    Next   		;; Test GOTO
+;               GOTO    Next   		;; Test GOTO
+;
+				GOTO	Next
+;
                 MOVLW   0xFF    	;; instruction should be skipped
 ;
 Next        	CALL    Subroutine	;; Test CALL
@@ -136,7 +139,7 @@ Continue		MOVLW   0x10    	;; Load FSR with non-banked RAM address
                 MOVWF   Tmr0    	;; Write to TMR0, clear Prescaler
                 GOTO    Start   	;; Restart Program
 ;-------------------------------------------------------------------------------
-PortTst			CLRWDT          	;; Detected SLEEP restart, Clr WDT to reset PD
+;PortTst
 ;
 ;                MOVLW   0xAA    	;; Load W with 0xAA
 ;                MOVWF   PortA    	;; WE_PortA
@@ -153,27 +156,32 @@ PortTst			CLRWDT          	;; Detected SLEEP restart, Clr WDT to reset PD
 ;                CLRF    PortC    	;; Clear PortC
 ;                CLRW            	;; zero working register
 ;
-				CLRW				;; Clear Working Register
-				MOVWF	0x0A		;; Loop Count
-				MOVWF	0x0B		;; Loop Counter
-				MOVWF	0x0C		;; Display Register
 ;
-Loop3			MOVF	0x0A,0		;; Load Working Register
-				MOVWF	0x0B		;; Set up delay counter
-;
-Loop4			DECF	0x0C,1
+PortTst			DECF	0x0C,1
 				MOVF	0x0C,0
 				MOVWF	PortA
 ;
-Loop5			DECFSZ	0x0B,1
-				GOTO	Loop5
-;
-				CLRWDT
-				GOTO	Loop3
-;
-				NOP
+				CALL	Delay
 ;
 				GOTO	PortTst
+
+;
+;	Delay Subroutine
+;
+Delay			NOP
+;
+				MOVLW	0xEE
+				MOVWF	0x0A
+				MOVLW	0x01
+				MOVWF	0x0B
+;
+DelayLp			DECFSZ	0x0A,1		;; Decrement Delay Low
+				GOTO	DelayLp
+				CLRWDT				;; Tickle WDT
+				DECFSZ	0x0B,1		;; Decrement Delay High
+				GOTO	DelayLp
+;
+				RETLW	0x00
 ;-------------------------------------------------------------------------------
 				END
 

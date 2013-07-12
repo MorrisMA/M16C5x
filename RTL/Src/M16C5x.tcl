@@ -5,7 +5,7 @@
 # 
 # This file contains several Tcl procedures (procs) that you can use to automate
 # your project by running from xtclsh or the Project Navigator Tcl console.
-# If you load this file (using the Tcl command: source M16C5x.tcl, then you can
+# If you load this file (using the Tcl command: source C:/XProjects/ISE10.1i/M16C5x/Src/M16C5x.tcl, then you can
 # run any of the procs included here.
 # You may also edit any of these procs to customize them. See comments in each
 # proc for more instructions.
@@ -32,7 +32,7 @@
 # 
 
 set myProject "M16C5x.ise"
-set myScript "M16C5x.tcl"
+set myScript "C:/XProjects/ISE10.1i/M16C5x/Src/M16C5x.tcl"
 
 # 
 # Main (top-level) routines
@@ -210,23 +210,43 @@ proc add_source_files {} {
 
    puts "$myScript: Adding sources to project..."
 
+   xfile add "../../VerilogComponentsLib/Edge, Change-of-State, and Clock Domain Synchronizers/re1ce.v"
+   xfile add "../../VerilogComponentsLib/Edge, Change-of-State, and Clock Domain Synchronizers/redet.v"
    xfile add "../../VerilogComponentsLib/FIFO - Distributed RAM/DPSFnmCE.v"
    xfile add "../../VerilogComponentsLib/FIFO - Distributed RAM/tb_DPSFmnCE.v"
    xfile add "../../VerilogComponentsLib/SPI and SSP Components/SPI Master/SPIxIF.v"
    xfile add "../../VerilogComponentsLib/SPI and SSP Components/SPI Master/tb_SPIxIF.v"
+   xfile add "../../VerilogComponentsLib/SSP_UART/SSP_UART.v"
+   xfile add "../../VerilogComponentsLib/SSP_UART/SSPx_Slv.v"
+   xfile add "../../VerilogComponentsLib/SSP_UART/UART_BRG.v"
+   xfile add "../../VerilogComponentsLib/SSP_UART/UART_INT.v"
+   xfile add "../../VerilogComponentsLib/SSP_UART/UART_RTO.v"
+   xfile add "../../VerilogComponentsLib/SSP_UART/UART_RXSM.v"
+   xfile add "../../VerilogComponentsLib/SSP_UART/UART_TXSM.v"
+   xfile add "../../VerilogComponentsLib/SSP_UART/tb_SSP_UART.v"
+   xfile add "../../VerilogComponentsLib/SSP_UART/tb_SSPx_Slv.v"
+   xfile add "../../VerilogComponentsLib/SSP_UART/tb_UART_BRG.v"
+   xfile add "../../VerilogComponentsLib/SSP_UART/tb_UART_RXSM.v"
+   xfile add "../../VerilogComponentsLib/SSP_UART/tb_UART_TXSM.v"
    xfile add "Src/ClkGen.xaw"
    xfile add "Src/M16C5x.ucf"
    xfile add "Src/M16C5x.v"
    xfile add "Src/M16C5x_ClkGen.v"
    xfile add "Src/M16C5x_SPI.v"
    xfile add "Src/M16C5x_Tst2.coe"
+   xfile add "Src/M16C5x_Tst3.coe"
+   xfile add "Src/M16C5x_UART.v"
    xfile add "Src/P16C5x.v"
    xfile add "Src/P16C5x_ALU.v"
    xfile add "Src/P16C5x_IDec.v"
    xfile add "Src/RAMA.coe"
    xfile add "Src/RAMB.coe"
+   xfile add "Src/RF_Init.coe"
+   xfile add "Src/TF_Init.coe"
    xfile add "Src/Test.coe"
    xfile add "Src/fedet.v"
+   xfile add "Src/tb_M16C5x.v"
+   xfile add "Src/tb_M16C5x_SPI.v"
    xfile add "Src/tb_P16C5x.v"
 
    # Set the Top Module as well...
@@ -320,7 +340,7 @@ proc set_process_props {} {
    project set "Logical Shifter Extraction" "true" -process "Synthesize - XST"
    project set "Optimization Goal" "Speed" -process "Synthesize - XST"
    project set "Optimization Effort" "High" -process "Synthesize - XST"
-   project set "Resource Sharing" "false" -process "Synthesize - XST"
+   project set "Resource Sharing" "true" -process "Synthesize - XST"
    project set "Shift Register Extraction" "true" -process "Synthesize - XST"
    project set "XOR Collapsing" "true" -process "Synthesize - XST"
    project set "Other Bitgen Command Line Options" "" -process "Generate Programming File"
@@ -365,7 +385,7 @@ proc set_process_props {} {
    project set "GWE Cycle During Suspend/Wakeup Sequence" "5" -process "Generate Programming File"
    project set "Wakeup Clock" "Startup Clock" -process "Generate Programming File"
    project set "Allow Logic Optimization Across Hierarchy" "true" -process "Map"
-   project set "Optimization Strategy (Cover Mode)" "Balanced" -process "Map"
+   project set "Optimization Strategy (Cover Mode)" "Area" -process "Map"
    project set "Disable Register Ordering" "true" -process "Map"
    project set "Pack I/O Registers/Latches into IOBs" "For Inputs and Outputs" -process "Map"
    project set "Replicate Logic to Allow Logic Level Reduction" "true" -process "Map"
@@ -395,7 +415,7 @@ proc set_process_props {} {
    project set "Bus Delimiter" "<>" -process "Synthesize - XST"
    project set "Case" "Maintain" -process "Synthesize - XST"
    project set "Cores Search Directories" "" -process "Synthesize - XST"
-   project set "Cross Clock Analysis" "false" -process "Synthesize - XST"
+   project set "Cross Clock Analysis" "true" -process "Synthesize - XST"
    project set "Equivalent Register Removal" "true" -process "Synthesize - XST"
    project set "FSM Style" "LUT" -process "Synthesize - XST"
    project set "Generate RTL Schematic" "Yes" -process "Synthesize - XST"
