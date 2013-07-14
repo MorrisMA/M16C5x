@@ -65,27 +65,66 @@
 //
 // Dependencies:    M16C5x_ClkGen.v
 //                      ClkGen.xaw
+//                      fedet.v
 //                  P16C5x.v
 //                      P16C5x_IDec.v
 //                      P16C5x_ALU.v
 //                  M16C5x_SPI.v
 //                      DPSFmnCE.v
 //                      SPIxIF.v
+//                  M16C5x_UART.v
+//                      SSPx_Slv.v
+//                      SSP_UART.v
+//                          re1ce.v
+//                          DPSFmnCE.v
+//                          UART_BRG.v
+//                          UART_TXSM.v
+//                          UART_RXSM.v
+//                          UART_RTO.v
+//                          UART_INT.v
+//                              redet.v
+//                              fedet.v
 //
 // Revision:
 //
 //  0.01    13F15   MAM     Initial creation of the M16C5x module.
+//
+//  2.20    13G14   MAM     Updated all of the module instantiations and the top
+//                          module to support the parameterization of the soft-
+//                          core microcontroller from the top level: M16C5x. Up-
+//                          dated Dependencies section, and set revision to
+//                          match the release number on GitHUB.
 // 
 // Additional Comments: 
 //
 ////////////////////////////////////////////////////////////////////////////////
 
 module M16C5x #(
-    parameter pWDT_Size  = 20,          // Use 20 for synthesis and 10 for Sim.
-    parameter pAddrsLen  = 12,          // User Program ROM address width
+    // P16C5x Module Parameter Settings
+    
+    parameter pWDT_Size  = 20,              // 20 - synthesis; 10 - Simulation
+    parameter pRstVector = 12'h7FF,         // Reset Vector Location (PIC16F59)
     parameter pUserProg  = "Src/M16C5x_Tst3.coe",   // Tst Pgm file: 4096 x 12
     parameter pRAMA_Init = "Src/RAMA.coe",  // RAM A initial value file ( 8x8)
-    parameter pRAMB_Init = "Src/RAMB.coe"   // RAM B initial value file (64x8)
+    parameter pRAMB_Init = "Src/RAMB.coe",  // RAM B initial value file (64x8)
+
+    // M16C5x_SPI Module Parameter Settings
+
+    parameter pSPI_CR_Default = 8'b0_110_00_0_0,    // SPI Interface Defaults
+    parameter pSPI_TF_Depth   = 4,          // Tx FIFO Depth: 2**pTF_Depth
+    parameter pSPI_RF_Depth   = 4,          // Rx FIFO Depth: 2**pRF_Depth
+    parameter pSPI_TF_Init    = "Src/TF_Init.coe",  // Tx FIFO Memory Init
+    parameter pSPI_RF_Init    = "Src/RF_Init.coe",  // Rx FIFO Memory Init
+
+    // SSP_UART Module Parameter Settings
+
+    parameter pPS_Default    = 4'h1,        // see baud rate tables SSP_UART
+    parameter pDiv_Default   = 8'hEF,       // BR = 9600 @UART_Clk = 73.728MHz
+    parameter pRTOChrDlyCnt  = 3,           // Rcv Time Out Character Dly Count
+    parameter pUART_TF_Depth = 0,           // Tx FIFO Depth: 2**(pTF_Depth + 4)
+    parameter pUART_RF_Depth = 3,           // Rx FIFO Depth: 2**(pRF_Depth + 4)
+    parameter pUART_TF_Init  = "Src/UART_TF.coe",   // Tx FIFO Memory Init
+    parameter pUART_RF_Init  = "Src/UART_RF.coe"    // Rx FIFO Memory Init
 )(
     input   ClkIn,                      // External Clk - drives 4x DCM
     input   Clk_UART,                   // External UART Reference Clk
@@ -175,7 +214,12 @@ assign T0CKI = ~nT0CKI_IFD;
 
 // Instantiate the P16C5x module
 
-P16C5x  CPU (
+P16C5x  #(
+            .pRstVector(pRstVector),
+            .pWDT_Size(pWDT_Size),
+            .pRAMA_Init(pRAMA_Init),
+            .pRAMB_Init(pRAMB_Init)
+        ) CPU (
             .POR(Rst), 
             .Clk(Clk), 
             .ClkEn(ClkEn),
@@ -300,7 +344,13 @@ assign nWait   = ~CS[1];
 
 assign SPI_MISO = ((CS[1]) ? SSP_MISO : MISO);
 
-M16C5x_SPI  SPI (
+M16C5x_SPI  #(
+                .pCR_Default(pSPI_CR_Default),
+                .pTF_Depth(pSPI_TF_Depth),
+                .pRF_Depth(pSPI_RF_Depth),
+                .pTF_Init(pSPI_TF_Init),
+                .pRF_Init(pSPI_RF_Init)
+            ) SPI (
                 .Rst(Rst), 
                 .Clk(Clk),
                 
@@ -341,7 +391,15 @@ BUFG    BUF1 (
 
 assign CTS = ~nCTS;
 
-M16C5x_UART UART (
+M16C5x_UART #(
+                .pPS_Default(pPS_Default),
+                .pDiv_Default(pDiv_Default),
+                .pRTOChrDlyCnt(pRTOChrDlyCnt),
+                .pTF_Depth(pUART_TF_Depth),
+                .pRF_Depth(pUART_RF_Depth),
+                .pTF_Init(pUART_TF_Init),
+                .pRF_Init(pUART_RF_Init)
+            ) UART (
                 .Rst(Rst), 
                 
                 .Clk_UART(Clk), 

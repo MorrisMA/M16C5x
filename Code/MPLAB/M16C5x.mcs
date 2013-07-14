@@ -24,7 +24,7 @@ LanguageToolLocation=C:\Program Files\Microchip\MPASM Suite\MPASMWIN.exe
 PPAD=$(BINDIR)||$(TMPDIR)||$(AINDIR)||$(INCDIR)||$(LIBDIR)||$(LKRDIR)||
 SOLK=<src>|M16C5x_Tst3.asm||<obj>||<lib>||<lkr>||
 SuiteArgsString=generate-absolute-code
-ToolArgsString=
+ToolArgsString=/aINHX8S
 TraceCmdString=
 DebugOptions=
 [File002]
@@ -37,7 +37,7 @@ LanguageToolLocation=C:\Program Files\Microchip\MPASM Suite\MPASMWIN.exe
 PPAD=$(BINDIR)||$(TMPDIR)||$(AINDIR)||$(INCDIR)||$(LIBDIR)||$(LKRDIR)||
 SOLK=<src>|M16C5x_Tst3.asm||<obj>||<lib>||<lkr>||
 SuiteArgsString=generate-absolute-code
-ToolArgsString=
+ToolArgsString=/aINHX8S
 TraceCmdString=
 DebugOptions=
 [File003]
@@ -89,7 +89,7 @@ LanguageToolLocation=C:\Program Files\Microchip\MPASM Suite\MPASMWIN.exe
 PPAD=$(BINDIR)||$(TMPDIR)||$(AINDIR)||$(INCDIR)||$(LIBDIR)||$(LKRDIR)||
 SOLK=<src>|M16C5x_Tst3.asm||<obj>||<lib>||<lkr>||
 SuiteArgsString=generate-absolute-code
-ToolArgsString=
+ToolArgsString=/aINHX8S
 TraceCmdString=
 DebugOptions=
 [File007]
@@ -102,7 +102,7 @@ LanguageToolLocation=C:\Program Files\Microchip\MPASM Suite\MPASMWIN.exe
 PPAD=$(BINDIR)||$(TMPDIR)||$(AINDIR)||$(INCDIR)||$(LIBDIR)||$(LKRDIR)||
 SOLK=<src>|M16C5x_Tst3.asm||<obj>||<lib>||<lkr>||
 SuiteArgsString=generate-absolute-code
-ToolArgsString=
+ToolArgsString=/aINHX8S
 TraceCmdString=
 DebugOptions=
 [File008]

@@ -5,7 +5,7 @@
 # 
 # This file contains several Tcl procedures (procs) that you can use to automate
 # your project by running from xtclsh or the Project Navigator Tcl console.
-# If you load this file (using the Tcl command: source C:/XProjects/ISE10.1i/M16C5x/Src/M16C5x.tcl, then you can
+# If you load this file (using the Tcl command: source M16C5x.tcl, then you can
 # run any of the procs included here.
 # You may also edit any of these procs to customize them. See comments in each
 # proc for more instructions.
@@ -32,7 +32,7 @@
 # 
 
 set myProject "M16C5x.ise"
-set myScript "C:/XProjects/ISE10.1i/M16C5x/Src/M16C5x.tcl"
+set myScript "M16C5x.tcl"
 
 # 
 # Main (top-level) routines
@@ -229,6 +229,7 @@ proc add_source_files {} {
    xfile add "../../VerilogComponentsLib/SSP_UART/tb_UART_RXSM.v"
    xfile add "../../VerilogComponentsLib/SSP_UART/tb_UART_TXSM.v"
    xfile add "Src/ClkGen.xaw"
+   xfile add "Src/M16C5x.bmm"
    xfile add "Src/M16C5x.ucf"
    xfile add "Src/M16C5x.v"
    xfile add "Src/M16C5x_ClkGen.v"
@@ -340,7 +341,7 @@ proc set_process_props {} {
    project set "Logical Shifter Extraction" "true" -process "Synthesize - XST"
    project set "Optimization Goal" "Speed" -process "Synthesize - XST"
    project set "Optimization Effort" "High" -process "Synthesize - XST"
-   project set "Resource Sharing" "true" -process "Synthesize - XST"
+   project set "Resource Sharing" "false" -process "Synthesize - XST"
    project set "Shift Register Extraction" "true" -process "Synthesize - XST"
    project set "XOR Collapsing" "true" -process "Synthesize - XST"
    project set "Other Bitgen Command Line Options" "" -process "Generate Programming File"
@@ -350,7 +351,7 @@ proc set_process_props {} {
    project set "Use RLOC Constraints" "true" -process "Map"
    project set "Other Map Command Line Options" "" -process "Map"
    project set "Use LOC Constraints" "true" -process "Translate"
-   project set "Other Ngdbuild Command Line Options" "" -process "Translate"
+   project set "Other Ngdbuild Command Line Options" "-bm Src/M16C5x" -process "Translate"
    project set "Ignore User Timing Constraints" "false" -process "Place & Route"
    project set "Other Place & Route Command Line Options" "" -process "Place & Route"
    project set "UserID Code (8 Digit Hexadecimal)" "0x4D414D00" -process "Generate Programming File"
@@ -385,7 +386,7 @@ proc set_process_props {} {
    project set "GWE Cycle During Suspend/Wakeup Sequence" "5" -process "Generate Programming File"
    project set "Wakeup Clock" "Startup Clock" -process "Generate Programming File"
    project set "Allow Logic Optimization Across Hierarchy" "true" -process "Map"
-   project set "Optimization Strategy (Cover Mode)" "Area" -process "Map"
+   project set "Optimization Strategy (Cover Mode)" "Balanced" -process "Map"
    project set "Disable Register Ordering" "true" -process "Map"
    project set "Pack I/O Registers/Latches into IOBs" "For Inputs and Outputs" -process "Map"
    project set "Replicate Logic to Allow Logic Level Reduction" "true" -process "Map"
@@ -424,7 +425,7 @@ proc set_process_props {} {
    project set "HDL INI File" "" -process "Synthesize - XST"
    project set "Library Search Order" "" -process "Synthesize - XST"
    project set "Netlist Hierarchy" "As Optimized" -process "Synthesize - XST"
-   project set "Optimize Instantiated Primitives" "false" -process "Synthesize - XST"
+   project set "Optimize Instantiated Primitives" "true" -process "Synthesize - XST"
    project set "Pack I/O Registers into IOBs" "Yes" -process "Synthesize - XST"
    project set "Read Cores" "true" -process "Synthesize - XST"
    project set "Slice Packing" "true" -process "Synthesize - XST"

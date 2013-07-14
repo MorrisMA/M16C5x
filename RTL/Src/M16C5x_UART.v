@@ -90,11 +90,31 @@
 // 
 //  1.00    13G06   MAM     File Created
 //
+//  1.00    13G14   MAM     Improved parameterization. Added/pulled parameters
+//                          to allow all relevant options to be set through the
+//                          instantiation interface.
+//
 // Additional Comments: 
 //
 ////////////////////////////////////////////////////////////////////////////////
 
-module M16C5x_UART(
+module M16C5x_UART #(
+    // SSP_UART Default BRR Settings Parameters
+
+    parameter pPS_Default  = 4'h1,          // see baud rate tables SSP_UART
+    parameter pDiv_Default = 8'hEF,         // see baud rate tables SSP_UART
+
+    // SSP_UART Default Receive Time Out Character Delay Count
+
+    parameter pRTOChrDlyCnt = 3,
+
+    // SSP_UART FIFO Configuration Parameters
+
+    parameter pTF_Depth = 0,                // Tx FIFO Depth: 2**(TF_Depth + 4)
+    parameter pRF_Depth = 3,                // Rx FIFO Depth: 2**(RF_Depth + 4)
+    parameter pTF_Init  = "Src/UART_TF.coe",    // Tx FIFO Memory Initialization 
+    parameter pRF_Init  = "Src/UART_RF.coe"     // Rx FIFO Memory Initialization 
+)(
     input   Rst,        // System Reset
     
     input   Clk_UART,   // UART Clock - expected to be 48 MHz
@@ -160,7 +180,15 @@ SSPx_Slv    SSP_Slv (
             
 //  Instantiate UART compatible with 16-bit SSP Slave Interface Controller
 
-SSP_UART    UART (
+SSP_UART    #(
+                .pPS_Default(pPS_Default),
+                .pDiv_Default(pDiv_Default),
+                .pRTOChrDlyCnt(pRTOChrDlyCnt),
+                .pTF_Depth(pTF_Depth),
+                .pRF_Depth(pRF_Depth),
+                .pTF_Init(pTF_Init),
+                .pRF_Init(pRF_Init)
+            ) UART (
                 .Rst(Rst), 
                 .Clk(Clk_UART),
                 

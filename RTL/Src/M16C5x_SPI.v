@@ -101,6 +101,9 @@
 //
 //  1.10    13F06   MAM     Changed polarity of chip select outputs from active
 //                          low to active high.
+//
+//  1.20    13G14   MAM     Improved parameterization. All relevant parameters
+//                          can be set through instantiation interface.
 //  
 // Additional Comments:
 //
@@ -111,7 +114,9 @@
 module M16C5x_SPI #(
     parameter pCR_Default = 8'b0_110_00_0_0,    // Default SPI Interface Setting
     parameter pTF_Depth = 4,    // Default Transmit FIFO Depth: 2**pTF_Depth
-    parameter pRF_Depth = 4     // Default Receive FIFO Depth:  2**pRF_Depth
+    parameter pRF_Depth = 4,    // Default Receive FIFO Depth:  2**pRF_Depth
+    parameter pTF_Init  = "Src/TF_Init.coe",    // Tx FIFO Memory Initialization
+    parameter pRF_Init  = "Src/RF_Init.coe"     // Rx FIFO Memory Initialization
 )(
     input   Rst,                // System Reset
     input   Clk,                // System Clk; SCK derived from Clk
@@ -180,7 +185,7 @@ assign Dir  = CR[7];
 DPSFnmCE    #(
                 .addr(pTF_Depth),
                 .width(9),
-                .init("Src/TF_Init.coe")
+                .init(pTF_Init)
             ) TF (
                 .Rst(Rst), 
                 .Clk(Clk),
@@ -204,7 +209,7 @@ assign DAV = ~TF_EF;
 DPSFnmCE    #(
                 .addr(pRF_Depth),
                 .width(8),
-                .init("Src/RF_Init.coe")
+                .init(pRF_Init)
             ) RF (
                 .Rst(Rst), 
                 .Clk(Clk),

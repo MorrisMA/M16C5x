@@ -1,4 +1,4 @@
-MPASM  5.50                   M16C5X_TST3.ASM   7-12-2013  15:33:55         PAGE  1
+MPASM  5.50                   M16C5X_TST3.ASM   7-13-2013  13:25:47         PAGE  1
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -57,7 +57,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
   00000001            00051 SPI_CR_SSel     EQU     1           ; Slv Select: 0 - Ext SEEPROM, 1 - SSP_UART
   00000002            00052 SPI_CR_MD0      EQU     2           ; SPI Md[1:0]: UART    - Mode 0 or Mode 3
   00000003            00053 SPI_CR_MD1      EQU     3           ;              SEEPROM - Mode 0 or Mode 3
-MPASM  5.50                   M16C5X_TST3.ASM   7-12-2013  15:33:55         PAGE  2
+MPASM  5.50                   M16C5X_TST3.ASM   7-13-2013  13:25:47         PAGE  2
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -116,7 +116,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
   00000003            00104 UART_TD_RA      EQU     3           ; Bits 7:5 SPI_DIO_H
   00000001            00105 UART_TD_WnR     EQU     1           ; Bit 4 SPI_DIO_H, Ignored if Not Set
   00000001            00106 UART_TD_TFC     EQU     1           ; Bit 3 SPI_DIO_H, Transmit FIFO Clear/Rst
-MPASM  5.50                   M16C5X_TST3.ASM   7-12-2013  15:33:55         PAGE  3
+MPASM  5.50                   M16C5X_TST3.ASM   7-13-2013  13:25:47         PAGE  3
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -175,14 +175,14 @@ Message[306]: Crossing page boundary -- ensure page bits are set.
 000D   0027           00156                 MOVWF   PortC
                       00157 
 000E   0C30           00158                 MOVLW   0x30            ; UART BRR (Hi) PS[3:0]
-MPASM  5.50                   M16C5X_TST3.ASM   7-12-2013  15:33:55         PAGE  4
+MPASM  5.50                   M16C5X_TST3.ASM   7-13-2013  13:25:47         PAGE  4
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
   VALUE
 
 000F   0027           00159                 MOVWF   PortC           ; Output to SPI and to UART
-0010   0C00           00160                 MOVLW   0x00            ; UART BRR (Lo) Div[7:0]
+0010   0CBF           00160                 MOVLW   0xBF            ; UART BRR (Lo) Div[7:0]
 0011   0027           00161                 MOVWF   PortC
                       00162 
 0012   0705           00163 WaitLp1         BTFSS   PortA, SPI_SR_TF_EF ; Wait for UART UCR, BRR output
@@ -232,7 +232,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00207 ;-------------------------------------------------------------------------------
                       00208                                 
                       00209                                 END
-MPASM  5.50                   M16C5X_TST3.ASM   7-12-2013  15:33:55         PAGE  5
+MPASM  5.50                   M16C5X_TST3.ASM   7-13-2013  13:25:47         PAGE  5
 
 
 SYMBOL TABLE
@@ -291,7 +291,7 @@ UART_SR_RA                        00000003
 UART_SR_RS                        00000002
 UART_SR_RTSi                      00000001
 UART_SR_TS                        00000002
-MPASM  5.50                   M16C5X_TST3.ASM   7-12-2013  15:33:55         PAGE  6
+MPASM  5.50                   M16C5X_TST3.ASM   7-13-2013  13:25:47         PAGE  6
 
 
 SYMBOL TABLE

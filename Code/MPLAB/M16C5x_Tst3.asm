@@ -157,7 +157,7 @@ SPI_Init_Dly    DECFSZ  DlyCntr,1
 
                 MOVLW   0x30            ; UART BRR (Hi) PS[3:0]
                 MOVWF   PortC           ; Output to SPI and to UART
-                MOVLW   0x00            ; UART BRR (Lo) Div[7:0]
+                MOVLW   0xBF            ; UART BRR (Lo) Div[7:0]
                 MOVWF   PortC
 
 WaitLp1         BTFSS   PortA, SPI_SR_TF_EF ; Wait for UART UCR, BRR output

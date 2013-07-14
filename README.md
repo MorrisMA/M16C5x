@@ -190,3 +190,17 @@ Utilization for a XC3S50A-4VQG100I FPGA is 100%. The 128 byte LUT-based
 receive FIFO can be reduced to accomodate some additional functions. Synthesis 
 and MAP/PAR able to implement the design. There is also some place holder 
 logic that can be used for other purposes.
+
+###Release 2.2
+
+Updated the soft-core so as to be able to parameterize the microcontroller 
+from the top module. Changed the frequency multiplication from 4 to 5 in order 
+to test operation at the frequency which the UCF constrains Map/PAR tools. The 
+input clock is driven by a 14.7456 MHz oscillator, and the clock multiplier 
+(DCM) generates **73.7280 MHz**. The default baud rate, 9600, required that the 
+default settings be adjusted. All other parameters remain the same.
+
+Also added a Block RAM Memory Map file to the project. Utilized Xilinx's 
+Data2MEM tool to insert modified program contents into the affected Block RAMs 
+using MEM files dereived from standard MPLAB outputs. Tutorial on this subject 
+is being prepared and will be released on an associated Wiki soon.
