@@ -65,6 +65,7 @@ and memory initialization files:
         M16C5x_Tst3.coe     - M16C5x Test #3 Program Memory Initialization File
 
         M16C5x.ucf          - M16C5x User Constraint File
+        M16C5x.bmm          - M16C5x Block RAM Memory Map File
 
 Verilog tesbench files are included for the processor core, the FIFO, and the 
 SPI modules.
@@ -82,6 +83,12 @@ Finally, the configuration of the Xilinx tools used to synthesize, map, place,
 and route are captured in the the TCL file:
 
         M16C5x.tcl
+        
+Added utility program to convert MPLAB Intel Hex programming files into MEM 
+files for use with Xilinx Data2MEM utility program to speed the process of 
+incorporating program/data/parameter data into block RAMs. TCL also 
+incorporates the process parameter changes to get the BMM file processed by 
+Map/PAR/Bitgen.
 
 Synthesis
 ---------

@@ -344,7 +344,7 @@ proc set_process_props {} {
    project set "Resource Sharing" "false" -process "Synthesize - XST"
    project set "Shift Register Extraction" "true" -process "Synthesize - XST"
    project set "XOR Collapsing" "true" -process "Synthesize - XST"
-   project set "Other Bitgen Command Line Options" "" -process "Generate Programming File"
+   project set "Other Bitgen Command Line Options" "-bd Src/M16C5x_Tst3.mem" -process "Generate Programming File"
    project set "Show All Models" "false" -process "Generate IBIS Model"
    project set "Target UCF File Name" "" -process "Back-annotate Pin Locations"
    project set "Ignore User Timing Constraints" "false" -process "Map"
