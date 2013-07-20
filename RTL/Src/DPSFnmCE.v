@@ -37,7 +37,7 @@
 
 `timescale 1ns / 1ps
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // Company:         M. A. Morris & Associates
 // Engineer:        Michael A. Morris
 // 
@@ -63,40 +63,37 @@
 //
 //  0.10    08K05   MAM     Changed depth to a localparam based on addr
 //
+//  1.00    13G14   MAM     Converted to Verilog 2001 standard
+//
 // Additional Comments: 
 //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
-module DPSFnmCE(Rst, Clk, WE, RE, DI, DO, FF, EF, HF, Cnt);
+module DPSFnmCE #( 
+    parameter addr  = 4,                // Sets depth of the FIFO: 2**addr
+    parameter width = 16,               // Sets width of the FIFO
+    parameter init  = "DPSFnmRAM.coe"   // Initializes FIFO memory
+)(
+    input   Rst,
+    input   Clk,
+    input   WE,
+    input   RE,
+    input   [(width - 1):0] DI,
+    output  [(width - 1):0] DO,
+    output  FF,
+    output  EF,
+    output  HF,
+    output  [addr:0] Cnt
+);
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  Module Parameter List
 //
 
-parameter   addr  = 4;
-parameter   width = 16;
-parameter   init  = "DPSFnmRAM.coe";
-
 localparam  depth = (2**addr);
 
-///////////////////////////////////////////////////////////////////////////////
-//
-//  Module Port Declarations
-//
-
-    input   Rst;
-    input   Clk;
-    input   WE;
-    input   RE;
-    input   [(width - 1):0] DI;
-    output  [(width - 1):0] DO;
-    output  FF;
-    output  EF;
-    output  HF;
-    output  [addr:0] Cnt;
-
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  Module Level Declarations
 //
@@ -109,7 +106,7 @@ localparam  depth = (2**addr);
     
     wire    Wr, Rd, CE;
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  Implementation
 //
