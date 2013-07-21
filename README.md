@@ -127,6 +127,34 @@ Design and initial verification is complete. Verification using ISim, MPLAB,
 and a board with an XC3S200AN-4VQG100I FPGA, various oscillators, SEEPROMs, 
 and RS-232/RS-485 transceivers is underway.
 
+In circuit testing of the M16C5x soft-core microcomputer has demonstrated that 
+the M16C5x can operate to **147.4560 MHz**. At this internal system clock 
+frequency, a 10x multiplication of the external reference oscillator, the SPI 
+shift clock divider must be set to divide the system clock by 4, which 
+generates an SPI shift clock frequency of 36.864 MHz. Various combinations of 
+the DCM multiplier have been generated at tested in the XC3S200A-4VQG100I 
+FPGA. The following table shows the system clock frequencies tested, the SPI 
+shift clock frequencies tested, and the maximum achievable standard UART bit 
+rate:
+
+    DCM Multiplier  System Clock (MHz)  SPI Clock (MHz) Max UART bit rate (MHz)
+        4x               58.9824            29.4912         3.6864
+        5x               73.7280            36.8640         0.9216
+        6x               88.4736            44.2368         0.9216
+        6.5x             95.8464            47.9232         0.4608
+        7x              103.2192            51.6096         0.9216
+        7.5x            110.5920            55.2960         0.4608
+        8x              117.9648            58.9824         7.3728
+        8.5x            125.3376            62.6688         0.4608
+        10x             147.4560            36.8640         1.8432
+
+These results are only applicable to this particular configuration. The period 
+constraint for the system clock is set for 12.5 ns, or 80 MHz. The 
+relationship between the clock enable, 0.5 of the system clock, does not seem 
+to be accomodated by the reported performance values. Further investigation is 
+needed to establish if the results provided in the previous table should be 
+accepted as the performance limits of the M16C5x core in this FPGA family.
+    
 Release Notes
 -------------
 
