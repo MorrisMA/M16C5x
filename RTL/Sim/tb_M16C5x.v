@@ -101,7 +101,7 @@ end
 
 ////////////////////////////////////////////////////////////////////////////////
 
-always #25 ClkIn = ~ClkIn;              // 20MHz Input Clk, 80MHz Internal Clk
+always #33.908 ClkIn = ~ClkIn;              // 14.7456 MHz Input Clk
 
 always #10.416 Clk_UART = ~Clk_UART;    // 48MHz UART Reference Clk
       

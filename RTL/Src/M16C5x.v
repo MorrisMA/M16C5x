@@ -94,6 +94,11 @@
 //                          core microcontroller from the top level: M16C5x. Up-
 //                          dated Dependencies section, and set revision to
 //                          match the release number on GitHUB.
+//
+//  2.30    13G21   MAM     Changed UART Clk to operate from the Clk2x output of
+//                          DCM. Gives a fixed value for the UART Clk regardless
+//                          of the ClkFX output frequency. Adjusted default PS,
+//                          Div values to produce 9600 bps as the default.
 // 
 // Additional Comments: 
 //
@@ -118,8 +123,8 @@ module M16C5x #(
 
     // SSP_UART Module Parameter Settings
 
-    parameter pPS_Default    = 4'h1,        // see baud rate tables SSP_UART
-    parameter pDiv_Default   = 8'hEF,       // BR = 9600 @UART_Clk = 73.728MHz
+    parameter pPS_Default    = 4'h0,        // see baud rate tables SSP_UART
+    parameter pDiv_Default   = 8'hBF,       // BR = 9600 @UART_Clk = 29.4912 MHz
     parameter pRTOChrDlyCnt  = 3,           // Rcv Time Out Character Dly Count
     parameter pUART_TF_Depth = 0,           // Tx FIFO Depth: 2**(pTF_Depth + 4)
     parameter pUART_RF_Depth = 3,           // Rx FIFO Depth: 2**(pRF_Depth + 4)
@@ -127,7 +132,6 @@ module M16C5x #(
     parameter pUART_RF_Init  = "Src/UART_RF.coe"    // Rx FIFO Memory Init
 )(
     input   ClkIn,                      // External Clk - drives 4x DCM
-    input   Clk_UART,                   // External UART Reference Clk
 
     input   nMCLR,                      // Master Clear Input
     input   nT0CKI,                     // Timer 0 Clk Input
@@ -194,8 +198,9 @@ M16C5x_ClkGen   ClkGen (
                     .nRst(nMCLR), 
                     .ClkIn(ClkIn),
                     
-                    .Clk(Clk),          // Clk    <= 4x ClkIn
-                    .BufClkIn(),        // RefClk <= Buffered ClkIn
+                    .Clk(Clk),              // Clk      <= (M/D) x ClkIn
+                    .Clk_UART(Clk_UART),    // Clk_UART <= 2x ClkIn 
+                    .BufClkIn(),            // RefClk   <= Buffered ClkIn
 
                     .Rst(Rst)
                 );
@@ -402,7 +407,7 @@ M16C5x_UART #(
             ) UART (
                 .Rst(Rst), 
                 
-                .Clk_UART(Clk), 
+                .Clk_UART(Clk_UART), 
                 
                 .SSEL(CS[1]), 
                 .SCK(SPI_SCK), 

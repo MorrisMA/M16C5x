@@ -37,7 +37,7 @@
 
 `timescale 1ns / 1ps
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 // Company:         M. A. Morris & Associates
 // Engineer:        Michael A. Morris
 //
@@ -132,6 +132,28 @@
 //                          from 3M down to 187.5k, and standard baud rates from
 //                          1200 to 230.4k baud.
 //
+//  2.20    13G12   MAM     Removed baud rate table controlled by 4 bits in the
+//                          UART control register. Replaced by a 12-bit write-
+//                          only register mapped to the address of the read-only
+//                          UART status register. The new Baud Rate Register re-
+//                          places the the baud rate ROM: PS[3:0] <= BRR[11:8],
+//                          and Div[7:0] <= BRR[7:8]. (N-1) must be loaded into
+//                          each of these fields to set the correct divider.
+//                          Also added parameters for default values for the 
+//                          baud rate generator PS (Prescaler) and Div (Divider)
+//                          values. Default values selected for 9600 bps at the
+//                          UART operating frequency, which is 73.728 MHz for
+//                          this application.
+//
+//  2.30    13G14   MAM     Changed the parameterization so module can be para-
+//                          meterized from the instantiating module. Removed
+//                          (commented out) Block RAM FIFO instantiations and 
+//                          associated FIFO configuration parameters. Updated
+//                          the Additional Comments section.
+//
+//  2.40    13G21   MAM     Added asynchronous reset to several functions in 
+//                          order to correctly simulate in ISim.
+//
 // Additional Comments:
 //
 //  The SSP UART is defined in 1700-0403C. The following is a summary of the 
@@ -139,21 +161,26 @@
 //  conflicts arise in the definitions, the implementation defined in this file
 //  will take precedence over the document.
 //
-//  The UART consists of five registers:
+//  The UART consists of six registers:
 // 
 //      (1) UCR - UART Control Register     (3'b000)
 //      (2) USR - UART Status Register      (3'b001)
+//      (3) BRR - Baud Rate Register        (3'b001)
 //      (3) TDR - Transmit Data Register    (3'b010)
 //      (4) RDR - Receive Data Register     (3'b011)
 //      (5) SPR - Scratch Pad Register      (3'b100)
 //
 //  The Synchronous Serial Peripheral of the ARM is configured to send 16 bits.
 //  The result is that the 3 most significant bits are interpreted as an regis-
-//  ter select. In this manner, the SSP UART minimizes the number of serial
-//  transfers required to send and receive serial data from the SSP UART. The
-//  reads from the TDR/RDR address also provides status information regarding
-//  the transmit and receive state machines, and the FIFO-based holding regis-
-//  ters.
+//  ter select. Bit 12, the fourth transmitted bit, set the write/read mode of
+//  transfer. The remaining twelve bits, bits 11...0, are data bits. In this
+//  manner, the SSP UART minimizes the number of serial transfers required to
+//  send and receive serial data from the SSP UART. The reads from the TDR/RDR
+//  addresses also provide status information regarding the transmit and receive
+//  state machines, and the FIFO-based holding registers. Thus, polling of the 
+//  status register is not necessary in most circumstances to determine if the
+//  FIFOs are ready to receive data from the host or have data to provide the
+//  host.
 //
 //  With each SSP/SPI operation to the TDR/RDR address, the SSP UART will read
 //  and write the receive and transmit holding registers, respectively. These
@@ -179,9 +206,9 @@
 //      9 - RTSo:   Request To Send, set to assert external RTS in Mode 0
 //      8 - IE  :   Interrupt Enable, set to enable Xmt/Rcv interrupts
 //    7:4 - FMT :   Format (see table below)
-//    3:0 - BAUD:   Baud Rate (see table below)
+//    3:0 - Rsvd:   Reserved (previously used for Baud Rate (see table below))
 //
-//  UART Status Register - USR (RA = 3'b001)
+//  UART Status Register - USR (RA = 3'b001) (Read-Only)
 //
 //  11:10 - MD  :   Mode (see table below)
 //      9 - RTSi:   Request To Send In, set as discussed above
@@ -192,6 +219,13 @@
 //      2 - iRDA:   Receive Data Available Interupt Flag (FIFO >= Half Full)
 //      1 - iTHE:   Transmit FIFO Half Empty Interrupt Flag
 //      0 - iTFE:   Transmit FIFO Empty Interrupt Flag
+//
+//  Buad Rate Register - BRR (RA = 3'b001) (Write-Only)
+//
+//   11:8 - PS  :   Baud Rate Prescaler (see table below) - load with (M - 1)
+//    7:0 - Div :   Baud Rate Divider (see table below) - load with (N - 1)
+//
+//   {PS, Div}  :   Baud Rate = (Clk / 16) / ((M - 1) * (N - 1))
 //
 //  Transmit Data Register - TDR (RA = 3'b010)
 //
@@ -211,9 +245,9 @@
 //
 //  Scratch Pad Register - SPR (RA = 3'b100)
 //
-//  11:0 - SPR  :   Scratch Pad Data, R/W location
+//  11:0 - SPR  :   Scratch Pad Data, R/W location set by bits 11:9 (see below)
 //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  MD[1:0] - Operating Mode
 //
@@ -233,38 +267,40 @@
 //   4'b0110 - 8N1, 4'b1110 - 7O2
 //   4'b0111 - 8N2, 4'b1111 - 7E2
 //
-//  BAUD[3:0] - Serial Baud Rate (48 MHz Reference Clock, 16x UART)
-//
-//   4'b0000 -  3000 kbps,  4'b1000 - 38.4 kbps
-//   4'b0001 -  1500 kbps,  4'b1001 - 28.8 kbps
-//   4'b0010 -   500 kbps,  4'b1010 - 19.2 kbps
-//   4'b0011 - 187.5 kbps,  4'b1011 - 14.4 kbps
-//   4'b0100 - 230.4 kbps,  4'b1100 -  9.6 kbps
-//   4'b0101 - 115.2 kbps,  4'b1101 -  4.8 kbps
-//   4'b0110 -  76.8 kbps,  4'b1110 -  2.4 kbps
-//   4'b0111 -  57.6 kbps,  4'b1111 -  1.2 kbps
-// 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  SPR Sub-Addresses - Additional Status Registers
 //
-//      Accessed by setting the 3 MSBs of the SPR to the address of the desired
+//      Accessed by setting SPR[11:9] to the address of the desired extended
 //      status register. Unused bits in the status registers set to 0.
 //      Unassigned sub-addresses default to the SPR.
 //
 //   1 - [7:0] Revision Register
 //   2 - [7:0] FIFO Length: RFLen - 7:4, TFLen - 3:0; (1 << (xFLen + 4))
 //   3 - [7:0] Rx/Tx FIFO Threshold: RFThr - 7:4, TFThr - 3:0; (xFLen >> 1)
-//   4 - [7:0] Tx Holding Register, reading THR does not advance FIFO
-//   5 - [8:0] Rx Holding Register, reading RHR does not advance FIFO
+//   4 - [7:0] Tx Holding Register, "peeking" into THR does not advance Tx FIFO
+//   5 - [8:0] Rx Holding Register, "peeking" into RHR does not advance Rx FIFO
 //   6 - [(TFLen + 4):0] Tx FIFO Count
 //   7 - [(RFLen + 4):0] Rx FIFO Count
 //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 module SSP_UART #( 
-    parameter pVersion = 8'h21,     // Version: 2.1
-    parameter pRTOChrDlyCnt = 3
+    // Default BRR Settings Parameters
+
+    parameter pPS_Default   = 4'h1,         // see baud rate tables below
+    parameter pDiv_Default  = 8'hEF,        // see baud rate tables below
+
+    // Default Receive Time Out Character Delay Count
+
+    parameter pRTOChrDlyCnt = 3,
+
+    // FIFO Configuration Parameters
+
+    parameter pTF_Depth = 0,                // Tx FIFO Depth: 2**(TF_Depth + 4)
+    parameter pRF_Depth = 3,                // Rx FIFO Depth: 2**(RF_Depth + 4)
+    parameter pTF_Init  = "Src/UART_TF.coe",    // Tx FIFO Memory Initialization
+    parameter pRF_Init  = "Src/UART_RF.coe"     // Rx FIFO Memory Initialization
 )(
     input   Rst,                    // System Reset
     input   Clk,                    // System Clock
@@ -302,43 +338,43 @@ module SSP_UART #(
     output  RxIdle
 ); 
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  Module Parameters
 // 
 
+localparam pVersion = 8'h23;    // Version: 2.3
+
 //  Register Addresses
 
-localparam pUCR = 0;    // UART Control Register
-localparam pUSR = 1;    // UART Status Register
-localparam pTDR = 2;    // Tx Data Register
-localparam pRDR = 3;    // Rx Data Register
-localparam pSPR = 4;    // Scratch Pad Register (and Aux. Status Registers)
+localparam pUCR = 0;            // UART Control Register
+localparam pUSR = 1;            // UART Status Register
+localparam pTDR = 2;            // Tx Data Register
+localparam pRDR = 3;            // Rx Data Register
+localparam pSPR = 4;            // Scratch Pad Register (and Aux. Status Regs)
 
 //  TDR Bit Positions
 
-localparam pTFC = 11;    // Tx FIFO Clear bit position
-localparam pRFC = 10;    // Rx FIFO Clear bit position
-localparam pHLD =  9;    // Tx SM Hold bit position
-
-//  FIFO Parameters
-
-localparam pTFLen = 0;   // Tx FIFO Len: (1 << (TFlen + 4))
-localparam pRFLen = 3;   // Rx FIFO Len: (1 << (RFLen + 4))
-localparam pWidth = 8;   // Maximum Character width
-localparam pxFThr = 8;   // Default FIFO Threshold (Half Full)
+localparam pTFC = 11;           // Tx FIFO Clear bit position
+localparam pRFC = 10;           // Rx FIFO Clear bit position
+localparam pHLD =  9;           // Tx SM Hold bit position
 
 //  SPR Sub-Addresses
 
-localparam pRev   = 1;   // Revision Register:   {0, pVersion}
-localparam pLen   = 2;   // Length Reg:          {0, pRFLen, pTFLen}
-localparam pFThr  = 3;   // Rx/Tx FIFO Threshold:{0, RFThr[3:0], TFThr[3:0]}
-localparam pTHR   = 4;   // Tx Holding Register: {0, THR[7:0]}
-localparam pRHR   = 5;   // Rx Holding Register: {0, RHR[8:0]}
-localparam pTFCnt = 6;   // Tx Count:            {0, TFCnt[(pTFLen + 4):0]}
-localparam pRFCnt = 7;   // Rx Count:            {0, RFCnt[(pRFLen + 4):0]}
+localparam pRev   = 1;          // Revision Reg:    {0, pVersion}
+localparam pLen   = 2;          // Length Reg:      {0, pRF_Depth, pTF_Depth}
+localparam pFThr  = 3;          // Rx/Tx FIFO Thres:{0, RFThr[3:0], TFThr[3:0]}
+localparam pTHR   = 4;          // Tx Holding Reg:  {0, THR[7:0]}
+localparam pRHR   = 5;          // Rx Holding Reg:  {0, RHR[8:0]}
+localparam pTFCnt = 6;          // Tx Count:        {0, TFCnt[(pTF_Depth+4):0]}
+localparam pRFCnt = 7;          // Rx Count:        {0, RFCnt[(pRF_Depth+4):0]}
 
-///////////////////////////////////////////////////////////////////////////////    
+//  FIFO Configuration Parameters
+
+localparam pWidth = 8;          // Maximum Character width
+localparam pxFThr = 8;          // TF/RF Half-Full Flag Theshold (%, 4 bits)
+
+////////////////////////////////////////////////////////////////////////////////   
 //
 //  Local Signal Declarations
 //
@@ -364,8 +400,8 @@ localparam pRFCnt = 7;   // Rx Count:            {0, RFCnt[(pRFLen + 4):0]}
     wire    WE_RHR;                 // Write Enable - RHR
     wire    RE_RHR, ClrRHR;         // Read Enable - RHR, Clear/Reset RHR
     wire    RF_FF, RF_EF, RF_HF;    // Receive FIFO Flags - Full, Empty, Half
-    wire    [(pTFLen + 4):0] TFCnt; // Tx FIFO Count
-    wire    [(pRFLen + 4):0] RFCnt; // RX FIFO Count
+    wire    [(pTF_Depth + 4):0] TFCnt;  // Tx FIFO Count
+    wire    [(pRF_Depth + 4):0] RFCnt;  // RX FIFO Count
     
     reg     [ 7:0] TDR;             // Transmit Data Register
     wire    [11:0] RDR;             // Receive Data Register, UART Status Reg
@@ -374,7 +410,7 @@ localparam pRFCnt = 7;   // Rx Count:            {0, RFCnt[(pRFLen + 4):0]}
     
     wire    [1:0] MD;               // UCR: Operating Mode
     wire    RTSo, IE;               // UCR: RTS Output, Interrupt Enable
-    wire    [3:0] FMT, Baud;        // UCR: Format, Baud Rate
+    wire    [3:0] FMT;              // UCR: Format (UCR[3:0] Reserved for Baud)
 
     reg     Len, NumStop, ParEn;    // Char Length, # Stop Bits, Parity Enable
     reg     [1:0] Par;              // Parity Selector
@@ -408,12 +444,12 @@ localparam pRFCnt = 7;   // Rx Count:            {0, RFCnt[(pRFLen + 4):0]}
     wire    RcvTimeout;             // Receive Timeout
     
     wire    [7:0] Version = pVersion;
-    wire    [3:0] TFLen   = pTFLen; // Len = (2**(pTFLen + 4))
-    wire    [3:0] RFLen   = pRFLen;
-    wire    [3:0] TFThr   = pxFThr; // Thr = pxFThr ? pxFThr * (2**pTFLen) : 1
+    wire    [3:0] TFLen   = pTF_Depth;  // Len = (2**(pTF_Depth + 4))
+    wire    [3:0] RFLen   = pRF_Depth;
+    wire    [3:0] TFThr   = pxFThr;     // Thr = pxFThr ? pxFThr*(2**pTFLen) : 1
     wire    [3:0] RFThr   = pxFThr;   
 
-///////////////////////////////////////////////////////////////////////////////    
+////////////////////////////////////////////////////////////////////////////////    
 //
 //  Implementation
 //
@@ -441,12 +477,12 @@ always @(*)
 begin
     case(SPR[11:9])
         pRev    : SPR_DO <= {4'b0, Version[7:0]};
-        pLen    : SPR_DO <= {4'b0, RFLen[3:0], TFLen[3:0]};
+        pLen    : SPR_DO <= {4'b0, pRF_Depth[3:0], pTF_Depth[3:0]};
         pFThr   : SPR_DO <= {4'b0, RTFThr};
         pTHR    : SPR_DO <= {4'b0, THR};
         pRHR    : SPR_DO <= {3'b0, RHR};
-        pTFCnt  : SPR_DO <= {1'b0, TFCnt[(pTFLen + 4):0]};
-        pRFCnt  : SPR_DO <= {1'b0, RFCnt[(pRFLen + 4):0]};
+        pTFCnt  : SPR_DO <= {1'b0, TFCnt[(pTF_Depth + 4):0]};
+        pRFCnt  : SPR_DO <= {1'b0, RFCnt[(pRF_Depth + 4):0]};
         default : SPR_DO <= SPR;
     endcase
 end
@@ -456,12 +492,12 @@ end
 always @(*)
 begin
     case(RSel)
-        pUCR    : SSP_DO <= ((SSP_SSEL) ? UCR                           : 0);
-        pUSR    : SSP_DO <= ((SSP_SSEL) ? USR                           : 0);
-        pTDR    : SSP_DO <= ((SSP_SSEL) ? TDR                           : 0);
-        pRDR    : SSP_DO <= ((SSP_SSEL) ? RDR                           : 0);
-        pSPR    : SSP_DO <= ((SSP_SSEL) ? SPR_DO                        : 0);
-        default : SSP_DO <= ((SSP_SSEL) ? {1'b0, RFCnt[(pRFLen + 4):0]} : 0);
+        pUCR    : SSP_DO <= ((SSP_SSEL) ? UCR                              : 0);
+        pUSR    : SSP_DO <= ((SSP_SSEL) ? USR                              : 0);
+        pTDR    : SSP_DO <= ((SSP_SSEL) ? TDR                              : 0);
+        pRDR    : SSP_DO <= ((SSP_SSEL) ? RDR                              : 0);
+        pSPR    : SSP_DO <= ((SSP_SSEL) ? SPR_DO                           : 0);
+        default : SSP_DO <= ((SSP_SSEL) ? {1'b0, RFCnt[(pRF_Depth+4) : 0]} : 0);
     endcase
 end
 
@@ -477,7 +513,7 @@ begin
         IRQ <= #1 IE & (iTFE | iTHE | iRHF | iRTO);
 end
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  Write UART Control Register
 //
@@ -496,7 +532,6 @@ assign MD   = UCR[11:10];
 assign RTSo = UCR[9];
 assign IE   = UCR[8];
 assign FMT  = UCR[7:4];
-assign Baud = UCR[3:0];
 
 //  Format Decode
 
@@ -520,33 +555,33 @@ case(FMT)
     4'b1111 : {Len, NumStop, ParEn, Par} <= {1'b1, 1'b1, 1'b1, 2'b01};   // 7E2
 endcase
 
-//////  Baud Rate Generator's PS and Div for defined Baud Rates (48 MHz Oscillator)
-////
-////always @(Baud)
-////begin
-////    case(Baud)
-////        // Profibus Baud Rates
-////        4'b0000 : {PS, Div} <= {4'h0, 8'h00}; // PS= 1; Div=  1; BR=3.0M
-////        4'b0001 : {PS, Div} <= {4'h0, 8'h01}; // PS= 1; Div=  2; BR=1.5M
-////        4'b0010 : {PS, Div} <= {4'h0, 8'h05}; // PS= 1; Div=  6; BR=500.0k
-////        4'b0011 : {PS, Div} <= {4'h0, 8'h0F}; // PS= 1; Div= 16; BR=187.5k
-////        // Standard Baud Rates
-////        4'b0100 : {PS, Div} <= {4'hC, 8'h00}; // PS=13; Div=  1; BR=230.4k
-////        4'b0101 : {PS, Div} <= {4'hC, 8'h01}; // PS=13; Div=  2; BR=115.2k
-////        4'b0110 : {PS, Div} <= {4'hC, 8'h02}; // PS=13; Div=  3; BR= 76.8k
-////        4'b0111 : {PS, Div} <= {4'hC, 8'h03}; // PS=13; Div=  4; BR= 57.6k
-////        4'b1000 : {PS, Div} <= {4'hC, 8'h05}; // PS=13; Div=  6; BR= 38.4k
-////        4'b1001 : {PS, Div} <= {4'hC, 8'h07}; // PS=13; Div=  8; BR= 28.8k
-////        4'b1010 : {PS, Div} <= {4'hC, 8'h0B}; // PS=13; Div= 12; BR= 19.2k
-////        4'b1011 : {PS, Div} <= {4'hC, 8'h0F}; // PS=13; Div= 16; BR= 14.4k
-////        4'b1100 : {PS, Div} <= {4'hC, 8'h17}; // PS=13; Div= 24; BR=  9.6k
-////        4'b1101 : {PS, Div} <= {4'hC, 8'h2F}; // PS=13; Div= 48; BR=  4.8k
-////        4'b1110 : {PS, Div} <= {4'hC, 8'h5F}; // PS=13; Div= 96; BR=  2.4k
-////        4'b1111 : {PS, Div} <= {4'hC, 8'hBF}; // PS=13; Div=192; BR=  1.2k
-////    endcase
-////end
+//  Baud Rate Generator's PS and Div for defined Baud Rates (48 MHz Osc)
 //
-////  Baud Rate Generator's PS and Div for defined Baud Rates (58.9824 MHz)
+//always @(Baud)
+//begin
+//    case(Baud)
+//        // Profibus Baud Rates
+//        4'b0000 : {PS, Div} <= {4'h0, 8'h00}; // PS= 1; Div=  1; BR=3.0M
+//        4'b0001 : {PS, Div} <= {4'h0, 8'h01}; // PS= 1; Div=  2; BR=1.5M
+//        4'b0010 : {PS, Div} <= {4'h0, 8'h05}; // PS= 1; Div=  6; BR=500.0k
+//        4'b0011 : {PS, Div} <= {4'h0, 8'h0F}; // PS= 1; Div= 16; BR=187.5k
+//        // Standard Baud Rates
+//        4'b0100 : {PS, Div} <= {4'hC, 8'h00}; // PS=13; Div=  1; BR=230.4k
+//        4'b0101 : {PS, Div} <= {4'hC, 8'h01}; // PS=13; Div=  2; BR=115.2k
+//        4'b0110 : {PS, Div} <= {4'hC, 8'h02}; // PS=13; Div=  3; BR= 76.8k
+//        4'b0111 : {PS, Div} <= {4'hC, 8'h03}; // PS=13; Div=  4; BR= 57.6k
+//        4'b1000 : {PS, Div} <= {4'hC, 8'h05}; // PS=13; Div=  6; BR= 38.4k
+//        4'b1001 : {PS, Div} <= {4'hC, 8'h07}; // PS=13; Div=  8; BR= 28.8k
+//        4'b1010 : {PS, Div} <= {4'hC, 8'h0B}; // PS=13; Div= 12; BR= 19.2k
+//        4'b1011 : {PS, Div} <= {4'hC, 8'h0F}; // PS=13; Div= 16; BR= 14.4k
+//        4'b1100 : {PS, Div} <= {4'hC, 8'h17}; // PS=13; Div= 24; BR=  9.6k
+//        4'b1101 : {PS, Div} <= {4'hC, 8'h2F}; // PS=13; Div= 48; BR=  4.8k
+//        4'b1110 : {PS, Div} <= {4'hC, 8'h5F}; // PS=13; Div= 96; BR=  2.4k
+//        4'b1111 : {PS, Div} <= {4'hC, 8'hBF}; // PS=13; Div=192; BR=  1.2k
+//    endcase
+//end
+//
+//  Baud Rate Generator's PS and Div for defined Baud Rates (58.9824 MHz)
 //
 //always @(Baud)
 //begin
@@ -567,6 +602,30 @@ endcase
 //        4'b1101 : {PS, Div} <= {4'h7, 8'hBF}; // PS= 8; Div=192; BR=  2.4k
 //        4'b1110 : {PS, Div} <= {4'h7, 8'hFF}; // PS= 8; Div=256; BR=  1.8k
 //        4'b1111 : {PS, Div} <= {4'hF, 8'hBF}; // PS=16; Div=192; BR=  1.2k
+//    endcase
+//end
+//
+//  Baud Rate Generator's PS and Div for defined Baud Rates (73.728 MHz)
+//
+//always @(Baud)
+//begin
+//    case(Baud)
+//        4'b0000 : {PS, Div} <= {4'h0, 8'h04}; // PS= 1; Div=   5; BR=921.6k
+//        4'b0001 : {PS, Div} <= {4'h0, 8'h09}; // PS= 1; Div=  10; BR=460.8k
+//        4'b0010 : {PS, Div} <= {4'h0, 8'h13}; // PS= 1; Div=  20; BR=230.4k
+//        4'b0011 : {PS, Div} <= {4'h0, 8'h27}; // PS= 1; Div=  40; BR=115.2k
+//        4'b0100 : {PS, Div} <= {4'h0, 8'h4F}; // PS= 1; Div=  80; BR= 57.6k
+//        4'b0101 : {PS, Div} <= {4'h0, 8'h77}; // PS= 1; Div= 120; BR= 38.4k
+//        4'b0110 : {PS, Div} <= {4'h0, 8'h9F}; // PS= 1; Div= 160; BR= 28.8k
+//        4'b0111 : {PS, Div} <= {4'h0, 8'hEF}; // PS= 1; Div= 240; BR= 19.2k
+//        4'b1000 : {PS, Div} <= {4'h1, 8'h9F}; // PS= 2; Div= 320; BR= 14.4k
+//        4'b1001 : {PS, Div} <= {4'h1, 8'hEF}; // PS= 2; Div= 480; BR=  9.6k
+//        4'b1010 : {PS, Div} <= {4'h3, 8'h9F}; // PS= 4; Div= 640; BR=  7.2k
+//        4'b1011 : {PS, Div} <= {4'h3, 8'hEF}; // PS= 4; Div= 960; BR=  4.8k
+//        4'b1100 : {PS, Div} <= {4'h7, 8'h9F}; // PS= 8; Div=1280; BR=  3.6k
+//        4'b1101 : {PS, Div} <= {4'h7, 8'hEF}; // PS= 8; Div=1920; BR=  2.4k
+//        4'b1110 : {PS, Div} <= {4'hF, 8'h9F}; // PS=16; Div=2560; BR=  1.8k
+//        4'b1111 : {PS, Div} <= {4'hF, 8'hEF}; // PS=16; Div=3840; BR=  1.2k
 //    endcase
 //end
 
@@ -594,7 +653,7 @@ endcase
 
 assign RTOVal = (pRTOChrDlyCnt - 1);    // Set RTO Character Delay Count
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  USR Register and Operations
 //
@@ -627,7 +686,7 @@ begin
     endcase
 end
 
-always @(posedge SCK)
+always @(posedge SCK or posedge Rst)
 begin
     if(Rst)
         USR <= #1 0;
@@ -637,7 +696,7 @@ end
 
 //  Read UART Status Register
 
-always @(posedge SCK)
+always @(posedge SCK or posedge Rst)
 begin
     if(Rst)
         En <= #1 0;
@@ -646,6 +705,7 @@ begin
 end
 
 //  Generate Clr_Int on rising edge of SSP_En if Sel_USR asserted
+//      and rising edge on SSP_En and any interrupt flags set in USR
 //      change clock domains from SCK to Clk (UART)
 
 re1ce   RED1 (
@@ -657,20 +717,20 @@ re1ce   RED1 (
             .pls(Clr_Int)
         );
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  BRR - Baud Rate Register
 //
 
-always @(posedge SCK)
+always @(posedge SCK or posedge Rst)
 begin
     if(Rst)
-        {PS, Div} <= #1 {4'h1, 8'hBF};  // Defaults to 9.6k baud
+        {PS, Div} <= #1 {pPS_Default, pDiv_Default};        // Default: 9600 bps
     else if(Sel_USR)
         {PS, Div} <= #1 ((SSP_WE) ? SSP_DI : {PS, Div});
 end
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  TDR/RDR Registers and Operations
 //
@@ -715,7 +775,7 @@ re1ce   RED3 (
             .pls(ClrRHR)
         );
 
-//  Latch the Transmit Hold Bit on writes to TDR
+//  Latch/Register the Transmit Hold Bit on writes to TDR
 
 always @(posedge SCK or posedge Rst)
 begin
@@ -768,7 +828,7 @@ re1ce   RED5 (
             .pls(RE_RHR)
         );
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  Write Scratch Pad Register
 //
@@ -793,16 +853,16 @@ begin
         RTFThr <= #1 SSP_DI;
 end
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  Xmt/Rcv Holding Register Instantiations - Dual-Port Synchronous FIFOs
 //
-//  THR FIFO - 64x8 FIFO
+//  THR FIFO - 2**(pTFLen + 4) x pWidth FIFO
 
 DPSFnmCE    #(
-                .addr((pTFLen + 4)),
+                .addr((pTF_Depth + 4)),
                 .width(pWidth),
-                .init("Src/UART_TF.coe")
+                .init(pTF_Init)
             ) TF1 (
                 .Rst(Rst | ClrTHR), 
                 .Clk(Clk), 
@@ -816,12 +876,12 @@ DPSFnmCE    #(
                 .Cnt(TFCnt)
             );
 
-//  RHR FIFO - 128x9 FIFO
+//  RHR FIFO - 2**(pRFLen + 4) x (pWidth + 1) FIFO
 
 DPSFnmCE    #(
-                .addr((pRFLen + 4)),
+                .addr((pRF_Depth + 4)),
                 .width((pWidth + 1)),
-                .init("Src/UART_RF.coe")
+                .init(pRF_Init)
             ) RF1 (
                 .Rst(Rst | ClrRHR), 
                 .Clk(Clk), 
@@ -835,53 +895,7 @@ DPSFnmCE    #(
                 .Cnt(RFCnt)
             );
 
-/*
-BRSFmnCE    #(
-                .pAddr((pTFLen + 4)), 
-                .pWidth(pWidth), 
-                .pRAMInitSize(0)
-            ) TF1 (
-                .Rst(Rst | ClrTHR), 
-                .Clk(Clk),
-                .Clr(ClrTHR),
-                .Thr(RTFThr[3:0]),
-                .WE(WE_THR), 
-                .DI(TD),
-                .RE(RE_THR),
-                .DO(THR),
-                .ACK(),
-                .FF(TF_FF),
-                .AF(),
-                .HF(TF_HF),
-                .AE(),
-                .EF(TF_EF),
-                .Cnt(TFCnt)
-            );
-
-BRSFmnCE    #(
-                .pAddr((pRFLen + 4)), 
-                .pWidth((pWidth + 1)), 
-                .pRAMInitSize(128)
-            ) RF1 (
-                .Rst(Rst), 
-                .Clk(Clk),
-                .Clr(ClrRHR),
-                .Thr(RTFThr[7:4]),
-                .WE(WE_RHR), 
-                .DI(RD),
-                .RE(RE_RHR),
-                .DO(RHR),
-                .ACK(),
-                .FF(RF_FF),
-                .AF(),
-                .HF(RF_HF),
-                .AE(),
-                .EF(RF_EF),
-                .Cnt(RFCnt)
-            );
-*/
-                 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  Configure external/internal serial port signals according to MD[1:0]
 //      MD[1:0] = 0,1 - RS-233; 2,3 - RS-485
@@ -950,7 +964,7 @@ end
 assign RTSi = ((RS232) ? xRTS : xDE);
 assign CTSi = ((MD == 1) ? xCTS : 1);
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  UART Baud Rate Generator Instantiation
 //
@@ -963,7 +977,7 @@ UART_BRG    BRG (
                 .CE_16x(CE_16x)
             );
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  UART Transmitter State Machine & Shift Register Instantiation
 //
@@ -992,7 +1006,7 @@ UART_TXSM   XMT (
                 .TxStop()
             );
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  UART Receiver State Machine & Shift Register Instantiation
 //
@@ -1022,7 +1036,7 @@ UART_RXSM   RCV (
                 .RxError()
             );
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  UART Receive Timeout Module Instantiation
 //
@@ -1042,7 +1056,7 @@ UART_RTO    TMR (
                 .RcvTimeout(RcvTimeout)
             );
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 //
 //  UART Interrupt Generator Instantiation
 //

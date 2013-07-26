@@ -82,7 +82,8 @@ files are found in the MPLAB subdirectory of the Code directory.
 Finally, the configuration of the Xilinx tools used to synthesize, map, place, 
 and route are captured in the the TCL file:
 
-        M16C5x.tcl
+        M16C5x.tcl          - TCL file for XC3S200A-4VQG100I FPGA
+        M16C5x_3S50A.tcl    - TCL file for XC3S50A-4VQG100I FPGA
         
 Added utility program to convert MPLAB Intel Hex programming files into MEM 
 files for use with Xilinx Data2MEM utility program to speed the process of 
@@ -103,22 +104,22 @@ Using ISE 10.1i SP3, the implementation results for an XC3S50A-4VQ100I are as
 follows:
 
     Number of Slice FFs:                613 of 1408      43%
-    Number of 4-input LUTs:            1283 of 1408      91%
-    Number of Occupied Slices:          704 of  704     100%
-    Total Number of 4-input LUTs:      1330 of 1408      94%
+    Number of 4-input LUTs:            1297 of 1408      92%
+    Number of Occupied Slices:          699 of  704      99%
+    Total Number of 4-input LUTs:      1344 of 1408      95%
 
-                    Logic:             1048
+                    Logic:             1062
                     Route-Through:       47
                     16x1 RAMs:            8
                     Dual-Port RAMs:     194
                     32x1 RAMs:           32
                     Shift Registers:      1
 
-    Number of BUFGMUXs:                   5 of   24      20%
+    Number of BUFGMUXs:                   4 of   24      16%
     Number of DCMs:                       1 of    2      50%
     Number of RAMB16BWEs                  3 of    3     100%
 
-    Best Case Achievable:           12.452 ns (0.048 ns Setup, 0.704 ns Hold)
+    Best Case Achievable:           12.431 ns (0.069 ns Setup, 0.767 ns Hold)
 
 Status
 ------
@@ -154,6 +155,13 @@ relationship between the clock enable, 0.5 of the system clock, does not seem
 to be accomodated by the reported performance values. Further investigation is 
 needed to establish if the results provided in the previous table should be 
 accepted as the performance limits of the M16C5x core in this FPGA family.
+
+A board has been configured with an XC3S50A-4VQG100I components, and it 
+operates as expected at 80 MHz. Testing like that performed above with the 
+XC3S200A-4VQG100I FPGA will be performed shortly. New interna resource 
+configuration makes the UART clock, Clk_UART, and fixed output of the DCM. The 
+UART clock is fixed at 2x ClkIn, or in this case, the UART clocl is fixed at 
+29.4912 MHz.
     
 Release Notes
 -------------
@@ -239,3 +247,11 @@ Also added a Block RAM Memory Map file to the project. Utilized Xilinx's
 Data2MEM tool to insert modified program contents into the affected Block RAMs 
 using MEM files dereived from standard MPLAB outputs. Tutorial on this subject 
 is being prepared and will be released on an associated Wiki soon.
+
+###Release 2.3
+
+Updated the soft-core microcomputer. Fixed the UART clock, Clk_UART, to twice 
+the input frequency. This means that the UART operates with a fixed reference 
+frequency unlike Release 2.2 where Clk_UART was set to the system clock 
+frequency. Also added asynchronous resets to several register in the UART so 
+that the would simulate correcly with ISim.

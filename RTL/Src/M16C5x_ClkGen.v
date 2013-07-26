@@ -60,7 +60,16 @@
 //
 // Revision:
 //
-//  0.01    13F15   MAM     Creation Date 
+//  0.01    13F15   MAM     Creation Date
+//
+//  1.00    13F21   MAM     Corrected error in the reset generation logic. An
+//                          AND reduction operator was applied to external reset
+//                          shift register. An OR reduction is necessary, and
+//                          is not applied. Asserting the external reset now
+//                          generates a reset pulse several clock cycles in
+//                          width to the internal logic. Added Clk_UART as an
+//                          output taken from the Clk2X output of DCM. Clk_UART
+//                          can noew be fixed at 2x ClkIn.
 //
 // Additional Comments: 
 //
@@ -70,7 +79,8 @@ module M16C5x_ClkGen(
     input   nRst,                       // External Reset Input (active low)
     input   ClkIn,                      // Reference Input Clk
     
-    output  Clk,                        // Internal Clk - 4x ClkIn
+    output  Clk,                        // Internal Clk - (M/D) x ClkIn
+    output  Clk_UART,                   // 2x ClkIn
     output  BufClkIn,                   // Buffered ClkIn
     
     output  reg Rst                     // Internal Reset
@@ -107,7 +117,7 @@ ClkGen  ClkGen (
             .CLKFX_OUT(Clk),                    // DCM ClkFX_Out  = 58.9824 MHz 
 
             .CLK0_OUT(),                        // Clk0_Out unused 
-            .CLK2X_OUT(),                       // Clk2x_Out (FB) = 29.4912 MHz 
+            .CLK2X_OUT(Clk_UART),               // Clk2x_Out (FB) = 29.4912 MHz 
             
             .LOCKED_OUT(DCM_Locked)             // When 1, DCM Locked 
         );
@@ -153,7 +163,7 @@ begin
         xRst <= #1 {~nRst_IFD, xRst[2:1]};
 end        
 
-assign Rst_M16C5x = ((&{~nRst_IFD, xRst}) | ~DCM_Locked);
+assign Rst_M16C5x = ((|{~nRst_IFD, xRst}) | ~DCM_Locked);
 
 always @(posedge BufClkIn or posedge Rst_M16C5x)
 begin
