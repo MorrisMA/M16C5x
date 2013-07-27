@@ -157,12 +157,25 @@ needed to establish if the results provided in the previous table should be
 accepted as the performance limits of the M16C5x core in this FPGA family.
 
 A board has been configured with an XC3S50A-4VQG100I components, and it 
-operates as expected at 80 MHz. Testing like that performed above with the 
-XC3S200A-4VQG100I FPGA will be performed shortly. New interna resource 
-configuration makes the UART clock, Clk_UART, and fixed output of the DCM. The 
-UART clock is fixed at 2x ClkIn, or in this case, the UART clocl is fixed at 
-29.4912 MHz.
+operates as expected at 80 MHz. A new internal resource configuration makes 
+the UART clock, Clk_UART, a fixed output of the DCM. The UART clock is fixed 
+at 2x ClkIn, or as is the case in this test configuration, 29.4912 MHz. 
+
+Testing like that performed above with the XC3S200A-4VQG100I is shown below. 
+It indicates that the upper operating frequency is limited to **140.0832 
+MHz**. This upper limit is most likely imposed by the reduction in routing 
+resources. The utilization factor in an XC3S50A-4VQG100I FPGA is **99%**, and _~50%_ 
+in an XC3S200A-4VQG100I FPGA. The larger number of LUTs/Slices and routing 
+resources allows Map and Place greater flexibility to satisfy the timing 
+constraints.
     
+    DCM Multiplier  System Clock (MHz)  SPI Clock (MHz) Max UART bit rate (MHz)
+        4x               58.9824            29.4912         1.8432
+        8x              117.9648            58.9824         1.8432
+        8.5x            125.3376            62.6688         1.8432
+        9x              132.7104            66.3552         1.8432
+        9.5x            140.0832            70.0461         1.8432
+
 Release Notes
 -------------
 
@@ -253,5 +266,14 @@ is being prepared and will be released on an associated Wiki soon.
 Updated the soft-core microcomputer. Fixed the UART clock, Clk_UART, to twice 
 the input frequency. This means that the UART operates with a fixed reference 
 frequency unlike Release 2.2 where Clk_UART was set to the system clock 
-frequency. Also added asynchronous resets to several register in the UART so 
-that the would simulate correcly with ISim.
+frequency.
+
+Also added asynchronous resets to several registers in the UART so that it 
+would simulate correcly with ISim. Direct control of the UART prescaler and 
+divider was previously untested using the simulation. With that change to the 
+baud rate generator made to UART, the reset/power-on values of these two logic 
+functions are unknown. The unknowns, "X", propagate through the baud rate 
+generator and prevent the simulator from resolving the state of the internal 
+baud rate clock of the UART. Thus, although the rest of circuits simulate as 
+expected, the transmit shift register never shifts because there's an 
+"unknown" signal level applied on the bit clock.
