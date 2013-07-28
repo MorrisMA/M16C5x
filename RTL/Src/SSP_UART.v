@@ -154,6 +154,23 @@
 //  2.40    13G21   MAM     Added asynchronous reset to several functions in 
 //                          order to correctly simulate in ISim.
 //
+//  2.50    13G28   MAM     Corrected issue with polling of the Receive Data
+//                          Register. A race condition was found. Corrected by
+//                          registering the data on the SCK clock domain and 
+//                          by requiring that the read pulse for the receive
+//                          FIFO is only generated if the empty flag status is
+//                          present on the SCK clock domain. This prevents the
+//                          same race condition as found when polling the UART
+//                          Status Register. Examining the condition/flags of
+//                          these registers, without polling via the SSP inter-
+//                          face, avoids these issues. Given the limited I/O
+//                          resources of the M16C5x, examining the condition/
+//                          flags bits directly without polling is not a viable
+//                          option. Therefore, corrected the race condition. If
+//                          examining the condition/flags directly is an option,
+//                          then that is the preferred method from a performance
+//                          perspective.
+//
 // Additional Comments:
 //
 //  The SSP UART is defined in 1700-0403C. The following is a summary of the 
@@ -404,7 +421,8 @@ localparam pxFThr = 8;          // TF/RF Half-Full Flag Theshold (%, 4 bits)
     wire    [(pRF_Depth + 4):0] RFCnt;  // RX FIFO Count
     
     reg     [ 7:0] TDR;             // Transmit Data Register
-    wire    [11:0] RDR;             // Receive Data Register, UART Status Reg
+//    wire    [11:0] RDR;             // Receive Data Register, UART Status Reg
+    reg     [11:0] RDR;             // Receive Data Register, UART Status Reg
     reg     [11:0] UCR, USR, SPR;   // UART Control, Status, & Scratch Pad Regs
     reg     [ 7:0] RTFThr;          // UART Rx/Tx FIFO Threshold Register
     
@@ -557,77 +575,59 @@ endcase
 
 //  Baud Rate Generator's PS and Div for defined Baud Rates (48 MHz Osc)
 //
-//always @(Baud)
-//begin
-//    case(Baud)
-//        // Profibus Baud Rates
-//        4'b0000 : {PS, Div} <= {4'h0, 8'h00}; // PS= 1; Div=  1; BR=3.0M
-//        4'b0001 : {PS, Div} <= {4'h0, 8'h01}; // PS= 1; Div=  2; BR=1.5M
-//        4'b0010 : {PS, Div} <= {4'h0, 8'h05}; // PS= 1; Div=  6; BR=500.0k
-//        4'b0011 : {PS, Div} <= {4'h0, 8'h0F}; // PS= 1; Div= 16; BR=187.5k
-//        // Standard Baud Rates
-//        4'b0100 : {PS, Div} <= {4'hC, 8'h00}; // PS=13; Div=  1; BR=230.4k
-//        4'b0101 : {PS, Div} <= {4'hC, 8'h01}; // PS=13; Div=  2; BR=115.2k
-//        4'b0110 : {PS, Div} <= {4'hC, 8'h02}; // PS=13; Div=  3; BR= 76.8k
-//        4'b0111 : {PS, Div} <= {4'hC, 8'h03}; // PS=13; Div=  4; BR= 57.6k
-//        4'b1000 : {PS, Div} <= {4'hC, 8'h05}; // PS=13; Div=  6; BR= 38.4k
-//        4'b1001 : {PS, Div} <= {4'hC, 8'h07}; // PS=13; Div=  8; BR= 28.8k
-//        4'b1010 : {PS, Div} <= {4'hC, 8'h0B}; // PS=13; Div= 12; BR= 19.2k
-//        4'b1011 : {PS, Div} <= {4'hC, 8'h0F}; // PS=13; Div= 16; BR= 14.4k
-//        4'b1100 : {PS, Div} <= {4'hC, 8'h17}; // PS=13; Div= 24; BR=  9.6k
-//        4'b1101 : {PS, Div} <= {4'hC, 8'h2F}; // PS=13; Div= 48; BR=  4.8k
-//        4'b1110 : {PS, Div} <= {4'hC, 8'h5F}; // PS=13; Div= 96; BR=  2.4k
-//        4'b1111 : {PS, Div} <= {4'hC, 8'hBF}; // PS=13; Div=192; BR=  1.2k
-//    endcase
-//end
+//  Profibus Baud Rates
 //
-//  Baud Rate Generator's PS and Div for defined Baud Rates (58.9824 MHz)
+//  {PS, Div} <= {4'h0, 8'h00}; // PS= 1; Div=  1; BR=3.0M
+//  {PS, Div} <= {4'h0, 8'h01}; // PS= 1; Div=  2; BR=1.5M
+//  {PS, Div} <= {4'h0, 8'h05}; // PS= 1; Div=  6; BR=500.0k
+//  {PS, Div} <= {4'h0, 8'h0F}; // PS= 1; Div= 16; BR=187.5k
 //
-//always @(Baud)
-//begin
-//    case(Baud)
-//        4'b0000 : {PS, Div} <= {4'h0, 8'h03}; // PS= 1; Div=  4; BR=921.6k
-//        4'b0001 : {PS, Div} <= {4'h0, 8'h07}; // PS= 1; Div=  8; BR=460.8k
-//        4'b0010 : {PS, Div} <= {4'h0, 8'h0F}; // PS= 1; Div= 16; BR=230.4k
-//        4'b0011 : {PS, Div} <= {4'h0, 8'h1F}; // PS= 1; Div= 32; BR=115.2k
-//        4'b0100 : {PS, Div} <= {4'h0, 8'h3F}; // PS= 1; Div= 64; BR= 57.6k
-//        4'b0101 : {PS, Div} <= {4'h0, 8'h5F}; // PS= 1; Div= 96; BR= 38.4k
-//        4'b0110 : {PS, Div} <= {4'h0, 8'h7F}; // PS= 1; Div=128; BR= 28.8k
-//        4'b0111 : {PS, Div} <= {4'h0, 8'hBF}; // PS= 1; Div=192; BR= 19.2k
-//        4'b1000 : {PS, Div} <= {4'h0, 8'hFF}; // PS= 1; Div=256; BR= 14.4k
-//        4'b1001 : {PS, Div} <= {4'h1, 8'hBF}; // PS= 2; Div=192; BR=  9.6k
-//        4'b1010 : {PS, Div} <= {4'h1, 8'hFF}; // PS= 2; Div=256; BR=  7.2k
-//        4'b1011 : {PS, Div} <= {4'h3, 8'hBF}; // PS= 4; Div=192; BR=  4.8k
-//        4'b1100 : {PS, Div} <= {4'h3, 8'hFF}; // PS= 4; Div=256; BR=  3.6k
-//        4'b1101 : {PS, Div} <= {4'h7, 8'hBF}; // PS= 8; Div=192; BR=  2.4k
-//        4'b1110 : {PS, Div} <= {4'h7, 8'hFF}; // PS= 8; Div=256; BR=  1.8k
-//        4'b1111 : {PS, Div} <= {4'hF, 8'hBF}; // PS=16; Div=192; BR=  1.2k
-//    endcase
-//end
+//  Standard Baud Rates
 //
-//  Baud Rate Generator's PS and Div for defined Baud Rates (73.728 MHz)
+//  {PS, Div} <= {4'hC, 8'h00}; // PS=13; Div=  1; BR=230.4k
+//  {PS, Div} <= {4'hC, 8'h01}; // PS=13; Div=  2; BR=115.2k
+//  {PS, Div} <= {4'hC, 8'h02}; // PS=13; Div=  3; BR= 76.8k
+//  {PS, Div} <= {4'hC, 8'h03}; // PS=13; Div=  4; BR= 57.6k
+//  {PS, Div} <= {4'hC, 8'h05}; // PS=13; Div=  6; BR= 38.4k
+//  {PS, Div} <= {4'hC, 8'h07}; // PS=13; Div=  8; BR= 28.8k
+//  {PS, Div} <= {4'hC, 8'h0B}; // PS=13; Div= 12; BR= 19.2k
+//  {PS, Div} <= {4'hC, 8'h0F}; // PS=13; Div= 16; BR= 14.4k
+//  {PS, Div} <= {4'hC, 8'h17}; // PS=13; Div= 24; BR=  9.6k
+//  {PS, Div} <= {4'hC, 8'h2F}; // PS=13; Div= 48; BR=  4.8k
+//  {PS, Div} <= {4'hC, 8'h5F}; // PS=13; Div= 96; BR=  2.4k
+//  {PS, Div} <= {4'hC, 8'hBF}; // PS=13; Div=192; BR=  1.2k
 //
-//always @(Baud)
-//begin
-//    case(Baud)
-//        4'b0000 : {PS, Div} <= {4'h0, 8'h04}; // PS= 1; Div=   5; BR=921.6k
-//        4'b0001 : {PS, Div} <= {4'h0, 8'h09}; // PS= 1; Div=  10; BR=460.8k
-//        4'b0010 : {PS, Div} <= {4'h0, 8'h13}; // PS= 1; Div=  20; BR=230.4k
-//        4'b0011 : {PS, Div} <= {4'h0, 8'h27}; // PS= 1; Div=  40; BR=115.2k
-//        4'b0100 : {PS, Div} <= {4'h0, 8'h4F}; // PS= 1; Div=  80; BR= 57.6k
-//        4'b0101 : {PS, Div} <= {4'h0, 8'h77}; // PS= 1; Div= 120; BR= 38.4k
-//        4'b0110 : {PS, Div} <= {4'h0, 8'h9F}; // PS= 1; Div= 160; BR= 28.8k
-//        4'b0111 : {PS, Div} <= {4'h0, 8'hEF}; // PS= 1; Div= 240; BR= 19.2k
-//        4'b1000 : {PS, Div} <= {4'h1, 8'h9F}; // PS= 2; Div= 320; BR= 14.4k
-//        4'b1001 : {PS, Div} <= {4'h1, 8'hEF}; // PS= 2; Div= 480; BR=  9.6k
-//        4'b1010 : {PS, Div} <= {4'h3, 8'h9F}; // PS= 4; Div= 640; BR=  7.2k
-//        4'b1011 : {PS, Div} <= {4'h3, 8'hEF}; // PS= 4; Div= 960; BR=  4.8k
-//        4'b1100 : {PS, Div} <= {4'h7, 8'h9F}; // PS= 8; Div=1280; BR=  3.6k
-//        4'b1101 : {PS, Div} <= {4'h7, 8'hEF}; // PS= 8; Div=1920; BR=  2.4k
-//        4'b1110 : {PS, Div} <= {4'hF, 8'h9F}; // PS=16; Div=2560; BR=  1.8k
-//        4'b1111 : {PS, Div} <= {4'hF, 8'hEF}; // PS=16; Div=3840; BR=  1.2k
-//    endcase
-//end
+//  Baud Rate Generator's PS and Div for defined Baud Rates (29.4912 MHz)
+//
+//  Extended Baud Rates
+//
+//  {PS, Div} <= {4'h0, 8'h00}; // PS= 1; Div=  1; BR=1843.2k
+//  {PS, Div} <= {4'h0, 8'h01}; // PS= 1; Div=  2; BR= 921.6k
+//  {PS, Div} <= {4'h0, 8'h02}; // PS= 1; Div=  3; BR= 614.4k
+//  {PS, Div} <= {4'h0, 8'h03}; // PS= 1; Div=  4; BR= 460.8k
+//  {PS, Div} <= {4'h0, 8'h05}; // PS= 1; Div=  6; BR= 307.2k
+//  {PS, Div} <= {4'h0, 8'h07}; // PS= 1; Div=  8; BR= 230.4k
+//  {PS, Div} <= {4'h0, 8'h0B}; // PS= 1; Div= 12; BR= 153.6k
+//
+//  Standard Baud Rates
+//
+//  {PS, Div} <= {4'h0, 8'h0F}; // PS= 1; Div= 16; BR= 115.2k
+//  {PS, Div} <= {4'h0, 8'h17}; // PS= 1; Div= 24; BR=  76.8k
+//  {PS, Div} <= {4'h0, 8'h1F}; // PS= 1; Div= 32; BR=  57.6k
+//  {PS, Div} <= {4'h0, 8'h2F}; // PS= 1; Div= 48; BR=  38.4k
+//  {PS, Div} <= {4'h0, 8'h3F}; // PS= 1; Div= 64; BR=  28.8k
+//  {PS, Div} <= {4'h0, 8'h5F}; // PS= 1; Div= 96; BR=  19.2k
+//  {PS, Div} <= {4'h0, 8'h7F}; // PS= 1; Div=128; BR=  14.4k
+//  {PS, Div} <= {4'h0, 8'hBF}; // PS= 1; Div=192; BR=   9.6k
+//  {PS, Div} <= {4'h0, 8'hFF}; // PS= 1; Div=256; BR=   7.2k
+//  {PS, Div} <= {4'h1, 8'hBF}; // PS= 2; Div=192; BR=   4.8k
+//  {PS, Div} <= {4'h1, 8'hFF}; // PS= 3; Div=256; BR=   3.6k
+//  {PS, Div} <= {4'h3, 8'hBF}; // PS= 4; Div=192; BR=   2.4k
+//  {PS, Div} <= {4'h3, 8'hFF}; // PS= 4; Div=256; BR=   1.8k
+//  {PS, Div} <= {4'h7, 8'hBF}; // PS= 8; Div=192; BR=   1.2k
+//  {PS, Div} <= {4'h7, 8'hFF}; // PS= 8; Div=256; BR=   0.9k
+//  {PS, Div} <= {4'hF, 8'hBF}; // PS=16; Div=192; BR=   0.6k
+//  {PS, Div} <= {4'hF, 8'hFF}; // PS=16; Div=256; BR=   0.45k
 
 //  Receive Timeout Character Frame Length
 
@@ -813,11 +813,21 @@ assign RRDY = ~RF_EF;
 assign RTO  = RcvTimeout;
 assign RERR = RHR[8];
 
-assign RDR  = {TRDY, RRDY, RTO, RERR, RHR[7:0]};            
+//  Capture and Hold Receive Data Register on SCK clock domain
+
+always @(posedge SCK or posedge Rst)
+begin
+    if(Rst)
+        RDR <= #1 0;
+    else if(~SSP_En)
+        RDR <= #1 {TRDY, RRDY, RTO, RERR, RHR[7:0]};
+end    
 
 //  Read Receive Holding Register
+//      Generate RE_RHR read pulse only when the captured value indicates that
+//      RDR contains data because there is data in the Receive FIFO, i.e. RHR.
 
-assign RE_RDR = SSP_RE & Sel_RDR & RRDY;
+assign RE_RDR = Sel_RDR & ~SSP_WnR & (SSP_En & ~En) & RDR[10];
 
 re1ce   RED5 (
             .den(RE_RDR), 

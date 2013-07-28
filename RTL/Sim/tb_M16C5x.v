@@ -37,7 +37,7 @@ reg     nWDTE;
 reg     PROM_WE;
 //
 wire    TD;
-reg     RD;
+wire    RD;
 wire    nRTS;
 reg     nCTS;
 //
@@ -49,13 +49,22 @@ reg     MISO;
 wire    [2:0] nCSO;
 wire    nWait;
 
+//  Simulation Structures
+
+reg     [3:0] Clk_Div;
+reg     Clk_16x;
+
+reg     TF_EF;
+reg     [7:0] THR;
+wire    TF_RE;
+wire    Idle;
+
 // Instantiate the Unit Under Test (UUT)
 
 M16C5x  #(
-            .pUserProg("Src/M16C5x_Tst3.coe")
+            .pUserProg("Src/M16C5x_Tst4.coe")
         ) uut (
             .ClkIn(ClkIn),
-            .Clk_UART(Clk_UART),
             
             .nMCLR(nMCLR), 
 
@@ -77,6 +86,36 @@ M16C5x  #(
             .nCSO(nCSO), 
             .nWait(nWait)
         );
+        
+//  Instantiate a UART Transmitter for testing UART Receiver in M16C5x
+
+UART_TXSM   RxD (
+                .Rst(~nMCLR),   // Reset
+                .Clk(Clk_UART), // UART Clock - 29.4912 MHz
+
+                .CE_16x(1'b1),  // 16x Clock Enable - Baud Rate x16
+                
+                .Len(1'b0),     // Word length: 0 - 8-bits; 1 - 7 bits
+                .NumStop(1'b0), // Number Stop Bits: 0 - 1 Stop; 1 - 2 Stop
+                .ParEn(1'b0),   // Parity Enable
+                .Par(2'b00),    // 0 - Odd;       1 - Even;
+                                // 2 - Space (0); 3 - Mark (1)
+
+                .TF_EF(TF_EF),  // Transmit THR Empty Flag
+
+                .THR(THR),      // Transmit Holding Register
+                .TF_RE(TF_RE),  // Transmit THR Read Enable Strobe
+
+                .CTSi(1'b1),    // RS232 Mode CTS input
+
+                .TxD(RD),   // Serial Data Out, LSB First, Start bit = 0
+
+                .TxIdle(Idle),  // Transmit State Machine - Idle State
+                .TxStart(), // Transmit State Machine - Start State - CTS wait
+                .TxShift(), // Transmit State Machine - Shift State
+                .TxStop()   // Transmit State Machine - Stop State - RTS clear
+            );
+
 
 initial begin
     // Initialize Inputs
@@ -87,25 +126,73 @@ initial begin
     nWDTE    = 1;
     PROM_WE  = 0;
     
-    RD       = 1;
     nCTS     = 0;
     MISO     = 1;
+    
+    Clk_Div = ~0;
+    Clk_16x =  0;
+    TF_EF   =  1;
+    THR     =  8'h00;
 
     // Wait 100 ns for global reset to finish
     
     #201 nMCLR = 1;
     
     // Add stimulus here
+    
+    @(negedge nRTS);
+
+    #20000 PutCh(8'hFF);
+    #20000 PutCh(8'h80);
+    #20000 PutCh(8'h7B);
+    #20000 PutCh(8'h7A);
+    #20000 PutCh(8'h61);
+    #20000 PutCh(8'h60);
+    #20000 PutCh(8'h5B);
+    #20000 PutCh(8'h5A);
+    #20000 PutCh(8'h41);
+    #20000 PutCh(8'h40);
+    #20000 PutCh(8'h39);
+    #20000 PutCh(8'h31);
+    #20000 PutCh(8'h00);
 
 end
 
 ////////////////////////////////////////////////////////////////////////////////
 
-always #33.908 ClkIn = ~ClkIn;              // 14.7456 MHz Input Clk
+always #33.908 ClkIn = ~ClkIn;          // Reference Clock - 14.7456 MHz
 
-always #10.416 Clk_UART = ~Clk_UART;    // 48MHz UART Reference Clk
-      
 ////////////////////////////////////////////////////////////////////////////////
+
+always #16.954 Clk_UART = ~Clk_UART;    // UART Clock      - 29.4912 MHz
+
+////////////////////////////////////////////////////////////////////////////////
+
+always @(posedge Clk_UART or negedge nMCLR)
+begin
+    if(~nMCLR) begin
+        Clk_Div <= #1 ~0;
+        Clk_16x <= #1  0;
+    end else begin
+        Clk_Div <= #1 (Clk_Div - 1);
+        Clk_16x <= #1 ~|Clk_Div;
+    end
+end
+
+////////////////////////////////////////////////////////////////////////////////
+
+task PutCh;
+    input   [7:0] ch;
+
+    begin
+        @(posedge Clk_UART) #1;
+        TF_EF = 0; THR = ch;
+        @(posedge TF_RE);
+        @(posedge Clk_UART) #1;
+        TF_EF = 1;
+    end
+
+endtask
 
 endmodule
 

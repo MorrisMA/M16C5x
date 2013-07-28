@@ -63,6 +63,7 @@ and memory initialization files:
         M16C5x_Test.coe     - M16C5x Test Program Memory Initialization File
         M16C5x_Tst2.coe     - M16C5x Test #2 Program Memory Initialization File
         M16C5x_Tst3.coe     - M16C5x Test #3 Program Memory Initialization File
+        M16C5x_Tst4.coe     - M16C5x Test #4 Program Memory Initialization File
 
         M16C5x.ucf          - M16C5x User Constraint File
         M16C5x.bmm          - M16C5x Block RAM Memory Map File
@@ -103,13 +104,13 @@ UART supporting baud rates from 3M bps to 1200 bps.
 Using ISE 10.1i SP3, the implementation results for an XC3S50A-4VQ100I are as 
 follows:
 
-    Number of Slice FFs:                613 of 1408      43%
-    Number of 4-input LUTs:            1297 of 1408      92%
-    Number of Occupied Slices:          699 of  704      99%
-    Total Number of 4-input LUTs:      1344 of 1408      95%
+    Number of Slice FFs:                619 of 1408      43%
+    Number of 4-input LUTs:            1287 of 1408      92%
+    Number of Occupied Slices:          701 of  704      99%
+    Total Number of 4-input LUTs:      1333 of 1408      94%
 
-                    Logic:             1062
-                    Route-Through:       47
+                    Logic:             1052
+                    Route-Through:       46
                     16x1 RAMs:            8
                     Dual-Port RAMs:     194
                     32x1 RAMs:           32
@@ -119,7 +120,7 @@ follows:
     Number of DCMs:                       1 of    2      50%
     Number of RAMB16BWEs                  3 of    3     100%
 
-    Best Case Achievable:           12.431 ns (0.069 ns Setup, 0.767 ns Hold)
+    Best Case Achievable:           12.381 ns (0.119 ns Setup, 0.691 ns Hold)
 
 Status
 ------
@@ -277,3 +278,32 @@ generator and prevent the simulator from resolving the state of the internal
 baud rate clock of the UART. Thus, although the rest of circuits simulate as 
 expected, the transmit shift register never shifts because there's an 
 "unknown" signal level applied on the bit clock.
+
+###Release 2.4
+
+Polling the UART's Receive Data Register (RDR) uncovered a race condition like 
+that previously found and corrected in regards to polling the UART Status 
+Register (USR). Correction required registering the RDR in the SCK clock 
+domain, and qualifying the read enable pulse for the receive FIFO so that it 
+is only generated if the Receive Rdy flag is present in the SCK clock domain. 
+Otherwise, the Receive FIFO is not read which prevents the inadvertent 
+clearing of the FIFO empty flag.
+
+Test Program 4, M16C5x_Tst4.asm, is used to test the receive signal path. 
+Hyperterminal and Tera Term were used to sent (without local echo) several 
+large text files through the M16C5x UART. The test program polls the RDR, and 
+if a character is received without error, then upper case are converted to 
+lower case characters, and vice-versa. Using a Keyspan Quad Port USB serial 
+port adapter, characters were sent to the M16C5x at a rate of 921.6k baud, the 
+highest programmable baud rate supported by the Keyspan device. The echo back 
+to terminal emulator appeared to be without error. (**Note:** _the two wire 
+RS-232 mode of the UART was used for this test. The ADM3232 charge-pump RS-232 
+transceiver appeared to work well at this frequency. Som slew rate limiting is 
+visible on an O-scope, but it appears to be tolerable. These tests were 
+conducted while the core was operating at **117.9648 MHz**._)
+
+This release is expected to be the last public release of this soft-core 
+microcomputer. The released core and peripherals are sufficient to demonstrate 
+a non-trivial FPGA implementation of a soft-core microcomputer. Further 
+developments will be focused on improving access to the internal block RAMs, 
+and improving the I/O capabilities of the release core.

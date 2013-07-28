@@ -109,7 +109,7 @@ module M16C5x #(
     
     parameter pWDT_Size  = 20,              // 20 - synthesis; 10 - Simulation
     parameter pRstVector = 12'h7FF,         // Reset Vector Location (PIC16F59)
-    parameter pUserProg  = "Src/M16C5x_Tst3.coe",   // Tst Pgm file: 4096 x 12
+    parameter pUserProg  = "Src/M16C5x_Tst4.coe",   // Tst Pgm file: 4096 x 12
     parameter pRAMA_Init = "Src/RAMA.coe",  // RAM A initial value file ( 8x8)
     parameter pRAMB_Init = "Src/RAMB.coe",  // RAM B initial value file (64x8)
 
@@ -163,7 +163,7 @@ module M16C5x #(
 
 reg     ClkEn;
 
-reg     [11:0] PROM[4095:0];            // User Program ROM (3x Block RAMs)
+reg     [11:0] PROM [4095:0];           // User Program ROM (3x Block RAMs)
 wire    [11:0] PROM_Addrs;              // Program Counter from CPU
 reg     [11:0] PROM_DO;                 // Instruction Register to CPU
 
