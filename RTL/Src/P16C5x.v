@@ -96,6 +96,13 @@
 //                          ALU_Op[1:0] instead of ALU_Op[7:6]. Under certain
 //                          combinations, results were correct.
 //
+//  1.50    13J19   MAM     Modified various register Write Enable/Clock Enable
+//                          implementation to minimize logic/multiplexers and
+//                          make better use of built-in FF CE functionality.
+//
+//  1.51    13J20   MAM     Added Msk port to CPU, made minor updates to
+//                          comments, and removed all unused code.
+//
 // Additional Comments:
 //
 ////////////////////////////////////////////////////////////////////////////////
@@ -138,6 +145,7 @@ module P16C5x #(
     output  [ 9:0] dIR,         // Out - Pipeline Register (Non-ALU Instruct.)
     output  [11:0] ALU_Op,      // Out - Pipeline Register (ALU Instructions)
     output  [ 8:0] KI,          // Out - Pipeline Register (Literal)
+    output  [ 7:0] Msk,         // Out - Pipeline Register Bit Mask
     output  Err,                // Out - Instruction Decode Error Output
 
     output  reg Skip,           // Out - Skip Next Instruction
@@ -192,7 +200,7 @@ wire    Rst_M16C5x;         // Internal Core Reset (asynchronous)
 wire    CE;                 // Internal Clock Enable: CE <= ClkEn & ~PD;
 
 reg     [2:0] PA;           // PC Load Register PC[11:9] = PA[2:0]
-reg     [7:0] SFR;          // Special Function Registers Data Output
+wor     [7:0] SFR;          // Special Function Registers Data Output
 
 wire    Rst_TO;             // Rst TO FF signal
 reg     TO;                 // Time Out FF (STATUS Register)
@@ -234,7 +242,6 @@ wire    WE_PSW;             // Write Enable for STATUS[2:0]: {Z, DC, C}
 wire    C, DC, Z;       // ALU Status Outputs
 wire    Z_Tst, g;       // Zero and Bit Test Condition Code 
 
-//
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 //
@@ -276,6 +283,7 @@ P16C5x_IDec IDEC (
                 .dIR(dIR),
                 .ALU_Op(ALU_Op),
                 .KI(KI),
+                .Msk(Msk),
 
                 .Err(Err)
             );
@@ -287,10 +295,12 @@ P16C5x_ALU  ALU (
                 .Clk(Clk),
                 .CE(CE),
                 
-                .ALU_Op(ALU_Op),
+                .ALU_Op(ALU_Op[9:0]),
                 
                 .DI(DI),
                 .KI(KI[7:0]),
+                .Msk(Msk),
+                
                 .WE_PSW(WE_PSW),
 
                 .DO(DO),
@@ -350,7 +360,7 @@ assign WE_TMR0   =  WE_F & (FA[4:0] == pTMR0);
 assign WE_PCL    =  WE_F & (FA[4:0] == pPCL);
 assign WE_STATUS =  WE_F & (FA[4:0] == pSTATUS);
 assign WE_FSR    =  WE_F & (FA[4:0] == pFSR);
-//
+
 //  I/O Ports moved to an external implementation
 //      WE_PortX asserts for an FA address match when LITERAL not asserted and a
 //          WE_F is asserted.
@@ -359,7 +369,7 @@ assign WE_FSR    =  WE_F & (FA[4:0] == pFSR);
 //          field. Tristate control for port A is instruction 0x005, and FA is
 //          the least significant 5 bits of the instruction. FA of 0x05 is the
 //          file address of Port A. (The same applies for Tris B and Tris C.)
-//
+
 assign WE_PORTA  =  WE_F & (FA[4:0] == pPORTA) & ~LITERAL;
 assign WE_PORTB  =  WE_F & (FA[4:0] == pPORTB) & ~LITERAL;
 assign WE_PORTC  =  WE_F & (FA[4:0] == pPORTC) & ~LITERAL;
@@ -396,32 +406,38 @@ end
 
 //  Stack Implementation (2 Level Stack)
 
+assign CE_TOS = CE & (CALL | RETLW);
+
 always @(posedge Clk)
 begin
     if(POR)
         TOS <= #1 pRstVector;       // Set TOS on Rst or WDT Timeout
-    else if(CE)
-        TOS <= #1 (CALL ? PC : (RETLW ? NOS : TOS));
+    else if(CE_TOS)
+        TOS <= #1 ((CALL) ? PC : NOS);
 end
+
+assign CE_NOS = CE & CALL;
 
 always @(posedge Clk)
 begin
     if(POR)
         NOS <= #1 pRstVector;       // Set NOS on Rst or WDT Timeout
-    else if(CE)
-        NOS <= #1 (CALL ? TOS : NOS);
+    else if(CE_NOS)
+        NOS <= #1 TOS;
 end
 
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  Port Configuration and Option Registers
 
+assign CE_OPTION = CE & WE_OPTION;
+
 always @(posedge Clk)
 begin
     if(POR)
         OPTION <= #1 8'b0011_1111;
-    else if(CE)
-        OPTION <= #1 ((WE_OPTION) ? W : OPTION);
+    else if(CE_OPTION)
+        OPTION <= #1 W;
 end
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -456,24 +472,28 @@ end
 
 assign Rst_PD = POR | (WE_WDTCLR & ~PwrDn);
 
+assign CE_PD = CE & WE_SLEEP;
+
 always @(posedge Clk)
 begin
     if(Rst_PD)
         PD <= #1 0;
-    else if(CE)
-        PD <= #1 ((WE_SLEEP) ? 1'b1 : PD);
+    else if(CE_PD)
+        PD <= #1 1;
 end
 
 //  PwrDn - Sleep Mode Control FF: Set by SLEEP instruction, cleared by Rst
 //          Differs from PD in that it is not readable and does not maintain
 //          its state through Reset. Gates CE to rest of the processor.
 
+assign CE_PwrDn = ClkEn & WE_SLEEP;
+
 always @(posedge Clk)
 begin
     if(Rst)
         PwrDn <= #1 0;
-    else if(ClkEn)
-        PwrDn <= #1 ((WE_SLEEP) ? 1'b1 : PwrDn);
+    else if(CE_PwrDn)
+        PwrDn <= #1 1;
 end
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -513,21 +533,26 @@ end
 ////////////////////////////////////////////////////////////////////////////////
 //
 // Special Function Registers
+//
+
+assign CE_PA = CE & WE_STATUS;
 
 always @(posedge Clk)
 begin
     if(POR)
         PA  <= #1 0;
-    else if(CE)
-        PA  <= #1 ((WE_STATUS) ? DO[7:5] : PA);
+    else if(CE_PA)
+        PA  <= #1 DO[7:5];
 end
+
+assign CE_FSR = CE & WE_FSR;
 
 always @(posedge Clk)
 begin
     if(POR)
         FSR <= #1 0;
-    else if(CE)
-        FSR <= #1 ((WE_FSR) ? DO : FSR);
+    else if(CE_FSR)
+        FSR <= #1 DO;
 end
 
 //  Generate STATUS Register
@@ -536,19 +561,13 @@ assign STATUS = {PA, ~TO, ~PD, Z, DC, C};
 
 //  Special Function Register (SFR) Multiplexers
 
-always @(*)
-begin
-    case(FA[2:0])
-        3'b000 :  SFR <= 0;
-        3'b001 :  SFR <= TMR0;
-        3'b010 :  SFR <= PC[7:0];
-        3'b011 :  SFR <= STATUS;
-        3'b100 :  SFR <= FSR;
-        3'b101 :  SFR <= IO_DI;
-        3'b110 :  SFR <= IO_DI;
-        3'b111 :  SFR <= IO_DI;
-    endcase
-end
+assign SFR = ((FA[2:0] == 3'b001) ? TMR0    : 0);
+assign SFR = ((FA[2:0] == 3'b010) ? PC[7:0] : 0);
+assign SFR = ((FA[2:0] == 3'b011) ? STATUS  : 0);
+assign SFR = ((FA[2:0] == 3'b100) ? FSR     : 0);
+assign SFR = ((FA[2:0] == 3'b101) ? IO_DI   : 0);
+assign SFR = ((FA[2:0] == 3'b110) ? IO_DI   : 0);
+assign SFR = ((FA[2:0] == 3'b111) ? IO_DI   : 0);
 
 //  File Data Output Multiplexer
 
@@ -564,6 +583,7 @@ assign IO_DO = ((|{WE_TRISA, WE_TRISB, WE_TRISC}) ? W : DO);
 //  Watchdog Timer and Timer0 Implementation- see Figure 8-6
 //
 //  OPTION Register Assignments
+//
 
 assign T0CS = OPTION[5];     // Timer0 Clock Source:   1 - T0CKI,  0 - Clk
 assign T0SE = OPTION[4];     // Timer0 Source Edge:    1 - FE,     0 - RE

@@ -5,7 +5,7 @@
 # 
 # This file contains several Tcl procedures (procs) that you can use to automate
 # your project by running from xtclsh or the Project Navigator Tcl console.
-# If you load this file (using the Tcl command: source M16C5x_3S50A.tcl, then you can
+# If you load this file (using the Tcl command: source C:/XProjects/ISE10.1i/M16C5x/Src/M16C5x_3S50A.tcl, then you can
 # run any of the procs included here.
 # You may also edit any of these procs to customize them. See comments in each
 # proc for more instructions.
@@ -32,7 +32,7 @@
 # 
 
 set myProject "M16C5x.ise"
-set myScript "M16C5x_3S50A.tcl"
+set myScript "C:/XProjects/ISE10.1i/M16C5x/Src/M16C5x_3S50A.tcl"
 
 # 
 # Main (top-level) routines
@@ -229,23 +229,16 @@ proc add_source_files {} {
    xfile add "../../VerilogComponentsLib/SSP_UART/tb_UART_RXSM.v"
    xfile add "../../VerilogComponentsLib/SSP_UART/tb_UART_TXSM.v"
    xfile add "Src/ClkGen.xaw"
-   xfile add "Src/M16C5x.bmm"
    xfile add "Src/M16C5x.ucf"
    xfile add "Src/M16C5x.v"
    xfile add "Src/M16C5x_ClkGen.v"
    xfile add "Src/M16C5x_SPI.v"
-   xfile add "Src/M16C5x_Tst2.coe"
-   xfile add "Src/M16C5x_Tst3.coe"
    xfile add "Src/M16C5x_UART.v"
+   xfile add "Src/M16C5x_bd.bmm"
    xfile add "Src/P16C5x.v"
    xfile add "Src/P16C5x_ALU.v"
    xfile add "Src/P16C5x_IDec.v"
-   xfile add "Src/RAMA.coe"
-   xfile add "Src/RAMB.coe"
-   xfile add "Src/RF_Init.coe"
    xfile add "Src/SPSLmnCE.v"
-   xfile add "Src/TF_Init.coe"
-   xfile add "Src/Test.coe"
    xfile add "Src/fedet.v"
    xfile add "Src/tb_M16C5x.v"
    xfile add "Src/tb_M16C5x_SPI.v"
@@ -343,20 +336,20 @@ proc set_process_props {} {
    project set "Logical Shifter Extraction" "true" -process "Synthesize - XST"
    project set "Optimization Goal" "Speed" -process "Synthesize - XST"
    project set "Optimization Effort" "High" -process "Synthesize - XST"
-   project set "Resource Sharing" "false" -process "Synthesize - XST"
+   project set "Resource Sharing" "true" -process "Synthesize - XST"
    project set "Shift Register Extraction" "true" -process "Synthesize - XST"
    project set "XOR Collapsing" "true" -process "Synthesize - XST"
-   project set "Other Bitgen Command Line Options" "-bd Src/M16C5x_Tst3.mem" -process "Generate Programming File"
+   project set "Other Bitgen Command Line Options" "-bd Src/M16C5x_Tst4.mem" -process "Generate Programming File"
    project set "Show All Models" "false" -process "Generate IBIS Model"
    project set "Target UCF File Name" "" -process "Back-annotate Pin Locations"
    project set "Ignore User Timing Constraints" "false" -process "Map"
    project set "Use RLOC Constraints" "true" -process "Map"
    project set "Other Map Command Line Options" "" -process "Map"
    project set "Use LOC Constraints" "true" -process "Translate"
-   project set "Other Ngdbuild Command Line Options" "-bm Src/M16C5x" -process "Translate"
+   project set "Other Ngdbuild Command Line Options" "-bm Src/M16C5x.bmm" -process "Translate"
    project set "Ignore User Timing Constraints" "false" -process "Place & Route"
    project set "Other Place & Route Command Line Options" "" -process "Place & Route"
-   project set "UserID Code (8 Digit Hexadecimal)" "0x4D414D00" -process "Generate Programming File"
+   project set "UserID Code (8 Digit Hexadecimal)" "0x4D414D41" -process "Generate Programming File"
    project set "Configuration Pin Done" "Pull Up" -process "Generate Programming File"
    project set "Create ASCII Configuration File" "false" -process "Generate Programming File"
    project set "Create Binary Configuration File" "false" -process "Generate Programming File"
@@ -388,7 +381,7 @@ proc set_process_props {} {
    project set "GWE Cycle During Suspend/Wakeup Sequence" "5" -process "Generate Programming File"
    project set "Wakeup Clock" "Startup Clock" -process "Generate Programming File"
    project set "Allow Logic Optimization Across Hierarchy" "true" -process "Map"
-   project set "Optimization Strategy (Cover Mode)" "Balanced" -process "Map"
+   project set "Optimization Strategy (Cover Mode)" "Area" -process "Map"
    project set "Disable Register Ordering" "true" -process "Map"
    project set "Pack I/O Registers/Latches into IOBs" "For Inputs and Outputs" -process "Map"
    project set "Replicate Logic to Allow Logic Level Reduction" "true" -process "Map"
@@ -402,7 +395,7 @@ proc set_process_props {} {
    project set "User Rules File for Netlister Launcher" "" -process "Translate"
    project set "Allow Unexpanded Blocks" "false" -process "Translate"
    project set "Allow Unmatched LOC Constraints" "false" -process "Translate"
-   project set "Starting Placer Cost Table (1-100)" "2" -process "Place & Route"
+   project set "Starting Placer Cost Table (1-100)" "7" -process "Place & Route"
    project set "Placer Effort Level (Overrides Overall Level)" "High" -process "Place & Route"
    project set "Router Effort Level (Overrides Overall Level)" "High" -process "Place & Route"
    project set "Place And Route Mode" "Multi Pass Place and Route" -process "Place & Route"
@@ -445,7 +438,7 @@ proc set_process_props {} {
    project set "Other XST Command Line Options" "" -process "Synthesize - XST"
    project set "Map Effort Level" "High" -process "Map"
    project set "Combinatorial Logic Optimization" "true" -process "Map"
-   project set "Starting Placer Cost Table (1-100)" "2" -process "Map"
+   project set "Starting Placer Cost Table (1-100)" "7" -process "Map"
    project set "Power Reduction" "false" -process "Map"
    project set "Register Duplication" "true" -process "Map"
    project set "Synthesis Constraints File" "" -process "Synthesize - XST"

@@ -63,6 +63,14 @@
 //  1.10    13F23   MAM     Changed order of ALU_Op[10] and ALU_Op[9]. Now the
 //                          modules uses ALU_Op[9:0] internally instead of 
 //                          {ALU_Op[10], ALU_Op[8:0]} as originally constructed.
+//
+//  1.20    13J19   MAM     Changed Write Enable/Clock Enable logic to remove
+//                          multiplexers and make better use of the built-in
+//                          functionality of the logic blocks in the FPGA.
+//
+//  1.30    13J20   MAM     Removed the internal bit mask ROM, and added an bit
+//                          mask input port. Reconfigured Bit Unit to use the
+//                          bit mask input port.
 // 
 // Additional Comments:
 //
@@ -79,11 +87,12 @@ module P16C5x_ALU (
     input   Clk,
     input   CE,
     
-    input   [11:0] ALU_Op,              // ALU Control Word
+    input   [9:0] ALU_Op,               // ALU Control Word
     input   WE_PSW,                     // Write Enable for {Z, DC, C} from DI
 
     input   [7:0] DI,                   // Data Input
     input   [7:0] KI,                   // Literal Input
+    input   [7:0] Msk,                  // Bit Mask Input
     
     output  reg [7:0] DO,               // ALU Output
     output  Z_Tst,                      // ALU Zero Test Output
@@ -111,9 +120,6 @@ reg     [7:0] V;
 
 wire    [1:0] S_Sel;
 reg     [7:0] S;
-
-wire    [2:0] Bit;
-reg     [7:0] Msk;
 
 wire    [7:0] U;
 wire    [7:0] T;
@@ -153,15 +159,6 @@ wire    [1:0] D_Sel;
 //          11 => Literal  W;
 //
 //  ALU Operations - Bit Processor (BP)
-//
-//  ALU_Op[2:0] = Bit Select: 000 => Bit 0;
-//                            001 => Bit 1;
-//                            010 => Bit 2;
-//                            011 => Bit 3;
-//                            100 => Bit 4;
-//                            101 => Bit 5;
-//                            110 => Bit 6;
-//                            111 => Bit 7;
 //
 //  ALU_Op[3] = Set: 0 - Clr Selected Bit;
 //                   1 - Set Selected Bit;
@@ -236,27 +233,12 @@ end
 
 //  Bit Processor
 
-assign Bit = ALU_Op[2:0];
 assign Set = ALU_Op[3];
 assign Tst = ALU_Op[8];
 
-always @(*)
-begin
-    case(Bit)
-        3'b000  : Msk <= 8'b0000_0001;
-        3'b001  : Msk <= 8'b0000_0010;
-        3'b010  : Msk <= 8'b0000_0100;
-        3'b011  : Msk <= 8'b0000_1000;
-        3'b100  : Msk <= 8'b0001_0000;
-        3'b101  : Msk <= 8'b0010_0000;
-        3'b110  : Msk <= 8'b0100_0000;
-        3'b111  : Msk <= 8'b1000_0000;
-    endcase
-end
-
 assign U = ((Set) ? (DI | Msk) : (DI & ~Msk));
 
-assign T = DI & Msk;
+assign T = (DI & Msk);
 assign g = ((Tst) ? ((Set) ? |T : ~|T) 
                   : 1'b0              );
 
@@ -264,39 +246,26 @@ assign g = ((Tst) ? ((Set) ? |T : ~|T)
 
 assign D_Sel = ALU_Op[7:6];
 
-always @(posedge Clk)
+always @(*)
 begin
-    if(Rst)
-        DO <= #1 0;
-    else
-        case (D_Sel)
-            2'b00 : DO <= #1 X;     // Arithmetic Unit Output
-            2'b01 : DO <= #1 V;     // Logic Unit Output
-            2'b10 : DO <= #1 S;     // Shifter Output
-            2'b11 : DO <= #1 U;     // Bit Processor Output
-        endcase
+    case (D_Sel)
+        2'b00 : DO <= X;     // Arithmetic Unit Output
+        2'b01 : DO <= V;     // Logic Unit Output
+        2'b10 : DO <= S;     // Shifter Output
+        2'b11 : DO <= U;     // Bit Processor Output
+    endcase
 end
-
-//always @(*)
-//begin
-//    case (D_Sel)
-//        2'b00 : DO <= X;     // Arithmetic Unit Output
-//        2'b01 : DO <= V;     // Logic Unit Output
-//        2'b10 : DO <= S;     // Shifter Output
-//        2'b11 : DO <= U;     // Bit Processor Output
-//    endcase
-//end
 
 //  Working Register
 
-assign WE_W = ALU_Op[9];
+assign WE_W = CE & ALU_Op[9];
 
 always @(posedge Clk)
 begin
     if(Rst)
         W <= #1 8'b0;
-    else if(CE)
-        W <= #1 ((WE_W) ? DO : W);
+    else if(WE_W)
+        W <= #1 DO;
 end
 
 //  Z Register
@@ -304,42 +273,43 @@ end
 assign Z_Sel = ALU_Op[5];
 assign Z_Tst = ~|DO;
 
+assign CE_Z  = CE & (WE_PSW | Z_Sel);
+
 always @(posedge Clk)
 begin
     if(Rst)
         Z <= #1 1'b0;
-    else if(CE)
-        Z <= #1 ((Z_Sel) ? Z_Tst 
-                         : ((WE_PSW) ? DO[2] : Z));
+    else if(CE_Z)
+        Z <= #1 ((WE_PSW) ? DO[2] : Z_Tst); 
 end
 
 //  Digit Carry (DC) Register
 
 assign DC_Sel = ALU_Op[5] & ALU_Op[4];
+assign CE_DC  = CE & (WE_PSW | DC_Sel);
 
 always @(posedge Clk)
 begin
     if(Rst)
         DC <= #1 1'b0;
-    else if(CE)
-        DC <= #1 ((DC_Sel) ? C3 
-                           : ((WE_PSW) ? DO[1] : DC));
+    else if(CE_DC)
+        DC <= #1 ((WE_PSW) ? DO[1] : C3);
 end
 
 //  Carry (C) Register
 
 assign C_Sel = ALU_Op[4];
 assign S_Dir = ALU_Op[1] & ALU_Op[0];
-assign C_Drv = ((~ALU_Op[7] & ~ALU_Op[6]) ? C7
-                                          : ((S_Dir) ? A[7] : A[0]));
+assign C_Drv = ((~ALU_Op[7] & ~ALU_Op[6]) ? C7 : ((S_Dir) ? A[7] : A[0]));
+
+assign CE_C  = CE & (WE_PSW | C_Sel);
 
 always @(posedge Clk)
 begin
     if(Rst)
         C <= #1 1'b0;
-    else if(CE)
-        C <= #1 ((C_Sel) ? C_Drv 
-                         : ((WE_PSW) ? DO[0] : C));
+    else if(CE_C)
+        C <= #1 ((WE_PSW) ? DO[0] : C_Drv);
 end
 
 endmodule

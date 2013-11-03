@@ -93,7 +93,7 @@ UART_TXSM   RxD (
                 .Rst(~nMCLR),   // Reset
                 .Clk(Clk_UART), // UART Clock - 29.4912 MHz
 
-                .CE_16x(1'b1),  // 16x Clock Enable - Baud Rate x16
+                .CE_16x(Clk_16x),   // 16x Clock Enable - Baud Rate x16
                 
                 .Len(1'b0),     // Word length: 0 - 8-bits; 1 - 7 bits
                 .NumStop(1'b0), // Number Stop Bits: 0 - 1 Stop; 1 - 2 Stop
@@ -108,12 +108,12 @@ UART_TXSM   RxD (
 
                 .CTSi(1'b1),    // RS232 Mode CTS input
 
-                .TxD(RD),   // Serial Data Out, LSB First, Start bit = 0
+                .TxD(RD),       // Serial Data Out, LSB First, Start bit = 0
 
-                .TxIdle(Idle),  // Transmit State Machine - Idle State
-                .TxStart(), // Transmit State Machine - Start State - CTS wait
-                .TxShift(), // Transmit State Machine - Shift State
-                .TxStop()   // Transmit State Machine - Stop State - RTS clear
+                .TxIdle(Idle),  // Transmit SM - Idle State
+                .TxStart(),     // Transmit SM - Start State - CTS wait
+                .TxShift(),     // Transmit SM - Shift State
+                .TxStop()       // Transmit SM - Stop State - RTS clear
             );
 
 

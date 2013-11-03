@@ -123,6 +123,10 @@
 //                          ALU, but are used in the P16C5x module. Change is
 //                          cosmetic.
 //
+//  1.30    13J20   MAM     Added direct decode of instruction into a bit maks.
+//                          Bit mask is registered along with other instruction
+//                          decode components.
+//
 // Additional Comments:
 //
 //  This instruction decoder is based on the combinatorial instruction decoder
@@ -206,6 +210,7 @@ module P16C5x_IDec(
     output  reg [ 9:0] dIR,
     output  reg [11:0] ALU_Op,
     output  reg [ 8:0] KI,
+    output  reg [ 7:0] Msk,
 
     output  reg Err
 );
@@ -531,6 +536,25 @@ begin
         KI <= #1 0;
     else if(CE)
         KI <= #1 ((Skip) ? KI : DI[8:0]);
+end
+
+//  Bit Mask
+
+always @(posedge Clk)
+begin
+    if(Rst)
+        Msk <= #1 8'hFF;
+    else
+        case(DI[7:5])
+            3'b000 : Msk <= #1 8'b00000001;
+            3'b001 : Msk <= #1 8'b00000010;
+            3'b010 : Msk <= #1 8'b00000100;
+            3'b011 : Msk <= #1 8'b00001000;
+            3'b100 : Msk <= #1 8'b00010000;
+            3'b101 : Msk <= #1 8'b00100000;
+            3'b110 : Msk <= #1 8'b01000000;
+            3'b111 : Msk <= #1 8'b10000000;
+        endcase
 end
 
 //  Unimplemented Instruction Error Register

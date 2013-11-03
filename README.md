@@ -15,10 +15,10 @@ not a cycle accurate model of any particular PIC microcomputer. It implements
 the 12-bit instruction set, the timer 0 module, the pre-scaler, and the watchdog 
 timer.
 
-As configured the core supports 2 cycle operation with internal block RAM 
-serving as program memory. In addition to the block RAM program store, a 4x 
-clock generator and reset controller is included as part of the in the 
-demonstration. 
+As configured, the core supports single cycle (1) operation with internal 
+block RAM serving as program memory. In addition to the block RAM program 
+store, a 4x clock generator and reset controller is included as part of the in 
+the demonstration. 
 
 Three I/O ports are supported, but they are accessed as external registers and 
 buffers using a bidirectional data bus. The TRIS I/O control registers are 
@@ -83,14 +83,23 @@ files are found in the MPLAB subdirectory of the Code directory.
 Finally, the configuration of the Xilinx tools used to synthesize, map, place, 
 and route are captured in the the TCL file:
 
-        M16C5x.tcl          - TCL file for XC3S200A-4VQG100I FPGA
         M16C5x_3S50A.tcl    - TCL file for XC3S50A-4VQG100I FPGA
+        
+Run this TCL script from within the TCL console of ISE, or examine it in a 
+text editor, to set up the project files and to set the tools to the options 
+used to achieve the results provided here.
         
 Added utility program to convert MPLAB Intel Hex programming files into MEM 
 files for use with Xilinx Data2MEM utility program to speed the process of 
 incorporating program/data/parameter data into block RAMs. TCL also 
 incorporates the process parameter changes to get the BMM file processed by 
 Map/PAR/Bitgen.
+
+    IH2MEM.c                    - Source code for Intel Hex to MEM utility
+    IH2MEM.exe                  - Windows Executable (32-bit)
+
+        M16C5x_Tst3.mem         - M16C5x Test #3 Program Memory Data2Mem File
+        M16C5x_Tst4.mem         - M16C5x Test #4 Program Memory Data2Mem File
 
 Synthesis
 ---------

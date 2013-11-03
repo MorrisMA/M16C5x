@@ -99,6 +99,14 @@
 //                          DCM. Gives a fixed value for the UART Clk regardless
 //                          of the ClkFX output frequency. Adjusted default PS,
 //                          Div values to produce 9600 bps as the default.
+//
+//  2.40    13J18   MAM     Remove CE TFF, and force single cycle operation.
+//                          Changed clock edge for internal block RAM from the
+//                          rising edge to the falling edge. This allows M16C5x
+//                          to function as a single cycle core when operating 
+//                          from internal block RAM.
+//
+//  2.41    13J19   MAM     Modified the UART FIFOs to be 64 elements deep.
 // 
 // Additional Comments: 
 //
@@ -126,8 +134,8 @@ module M16C5x #(
     parameter pPS_Default    = 4'h0,        // see baud rate tables SSP_UART
     parameter pDiv_Default   = 8'hBF,       // BR = 9600 @UART_Clk = 29.4912 MHz
     parameter pRTOChrDlyCnt  = 3,           // Rcv Time Out Character Dly Count
-    parameter pUART_TF_Depth = 0,           // Tx FIFO Depth: 2**(pTF_Depth + 4)
-    parameter pUART_RF_Depth = 3,           // Rx FIFO Depth: 2**(pRF_Depth + 4)
+    parameter pUART_TF_Depth = 2,           // Tx FIFO Depth: 2**(pTF_Depth + 4)
+    parameter pUART_RF_Depth = 2,           // Rx FIFO Depth: 2**(pRF_Depth + 4)
     parameter pUART_TF_Init  = "Src/UART_TF.coe",   // Tx FIFO Memory Init
     parameter pUART_RF_Init  = "Src/UART_RF.coe"    // Rx FIFO Memory Init
 )(
@@ -161,7 +169,7 @@ module M16C5x #(
 //  Declarations
 //
 
-reg     ClkEn;
+wire    ClkEn;
 
 reg     [11:0] PROM [4095:0];           // User Program ROM (3x Block RAMs)
 wire    [11:0] PROM_Addrs;              // Program Counter from CPU
@@ -205,14 +213,22 @@ M16C5x_ClkGen   ClkGen (
                     .Rst(Rst)
                 );
 
-//  Generate Clock Enable (Clk/2)
+//  Force Single Cycle Operation
 
-always @(posedge Clk or posedge Rst) ClkEn <= #1 ((Rst) ? 0 : ~ClkEn);
+assign ClkEn = 1;
 
 //  Register Inputs and connect to CPU
 
-always @(posedge Clk) nWDTE_IFD  <= #1 ((Rst) ? 1 : nWDTE );
-always @(posedge Clk) nT0CKI_IFD <= #1 ((Rst) ? 1 : nT0CKI);
+always @(posedge Clk)
+begin
+    if(Rst) begin
+        nWDTE_IFD  <= #1 1;
+        nT0CKI_IFD <= #1 1;
+    end else if(ClkEn) begin
+        nWDTE_IFD  <= #1 nWDTE;
+        nT0CKI_IFD <= #1 nT0CKI;
+    end
+end 
 
 assign WDTE  = ~nWDTE_IFD;
 assign T0CKI = ~nT0CKI_IFD;
@@ -255,7 +271,8 @@ P16C5x  #(
             .IR(), 
             .dIR(), 
             .ALU_Op(), 
-            .KI(), 
+            .KI(),
+            .Msk(),            
             .Err(), 
             .Skip(), 
             .TOS(), 
@@ -286,7 +303,7 @@ initial
 
 assign WE_PROM = ClkEn & WE_PORTA & PROM_WE;
 
-always @(posedge Clk)
+always @(negedge Clk)
 begin
     if(Rst)
         PROM_DO <= #1 0;
@@ -295,16 +312,6 @@ begin
     else
         PROM_DO <= #1 PROM[PROM_Addrs];
 end
-
-//always @(posedge <clock>) begin
-//    if (<enableA>) begin
-//        if (<write_enableA>)
-//            <ram_name>[<addressA>] <= <input_dataA>;
-//        <output_dataA> <= <ram_name>[<addressA>];
-//    end
-//    if (<enableB>)
-//        <output_dataB> <= <ram_name>[<addressB>];
-//end
 
 ////////////////////////////////////////////////////////////////////////////////
 //
