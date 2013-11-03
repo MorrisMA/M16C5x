@@ -316,3 +316,13 @@ microcomputer. The released core and peripherals are sufficient to demonstrate
 a non-trivial FPGA implementation of a soft-core microcomputer. Further 
 developments will be focused on improving access to the internal block RAMs, 
 and improving the I/O capabilities of the release core.
+
+###Release 2.5
+
+Converted the core to operate in a single cycle mode with the block RAM 
+memories of the FPGA. Operating frequency, in a -4 Spartan 3A FPGA, is 60+ 
+MHz. This rate is equivalent to the 117.9848 MHz reported above of for Release 
+2.4. Some combinatorial path improvements were made to the processor core, 
+P16C5x, by using wired-OR bus connections rather than explicit multiplexers. 
+These improvements also provided some reductions in the resource utilization 
+of the project.
