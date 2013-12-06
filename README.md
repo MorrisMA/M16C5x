@@ -10,15 +10,15 @@ General Description
 -------------------
 
 This project demonstrates the use of a PIC16C5x-compatible core as an FPGA-
-based processor. The core provided is instruction set compatible, but it is 
-not a cycle accurate model of any particular PIC microcomputer. It implements 
-the 12-bit instruction set, the timer 0 module, the pre-scaler, and the watchdog 
-timer.
+based processor. It implements the 12-bit instruction set, the timer 0 module, 
+the pre-scaler, and the watchdog timer. The core provided here is compatible 
+with instruction set, but it is not a cycle accurate model of any particular 
+PIC microcomputer. 
 
 As configured, the core supports single cycle (1) operation with internal 
 block RAM serving as program memory. In addition to the block RAM program 
-store, a 4x clock generator and reset controller is included as part of the in 
-the demonstration. 
+store, a 4x clock generator and reset controller is included as part of the 
+demonstration. 
 
 Three I/O ports are supported, but they are accessed as external registers and 
 buffers using a bidirectional data bus. The TRIS I/O control registers are 
@@ -134,57 +134,9 @@ follows:
 Status
 ------
 
-Design and initial verification is complete. Verification using ISim, MPLAB, 
+Design and verification is complete. Verification performed using ISim, MPLAB, 
 and a board with an XC3S200AN-4VQG100I FPGA, various oscillators, SEEPROMs, 
-and RS-232/RS-485 transceivers is underway.
-
-In circuit testing of the M16C5x soft-core microcomputer has demonstrated that 
-the M16C5x can operate to **147.4560 MHz**. At this internal system clock 
-frequency, a 10x multiplication of the external reference oscillator, the SPI 
-shift clock divider must be set to divide the system clock by 4, which 
-generates an SPI shift clock frequency of 36.864 MHz. Various combinations of 
-the DCM multiplier have been generated at tested in the XC3S200A-4VQG100I 
-FPGA. The following table shows the system clock frequencies tested, the SPI 
-shift clock frequencies tested, and the maximum achievable standard UART bit 
-rate:
-
-    DCM Multiplier  System Clock (MHz)  SPI Clock (MHz) Max UART bit rate (MHz)
-        4x               58.9824            29.4912         3.6864
-        5x               73.7280            36.8640         0.9216
-        6x               88.4736            44.2368         0.9216
-        6.5x             95.8464            47.9232         0.4608
-        7x              103.2192            51.6096         0.9216
-        7.5x            110.5920            55.2960         0.4608
-        8x              117.9648            58.9824         7.3728
-        8.5x            125.3376            62.6688         0.4608
-        10x             147.4560            36.8640         1.8432
-
-These results are only applicable to this particular configuration. The period 
-constraint for the system clock is set for 12.5 ns, or 80 MHz. The 
-relationship between the clock enable, 0.5 of the system clock, does not seem 
-to be accomodated by the reported performance values. Further investigation is 
-needed to establish if the results provided in the previous table should be 
-accepted as the performance limits of the M16C5x core in this FPGA family.
-
-A board has been configured with an XC3S50A-4VQG100I components, and it 
-operates as expected at 80 MHz. A new internal resource configuration makes 
-the UART clock, Clk_UART, a fixed output of the DCM. The UART clock is fixed 
-at 2x ClkIn, or as is the case in this test configuration, 29.4912 MHz. 
-
-Testing like that performed above with the XC3S200A-4VQG100I is shown below. 
-It indicates that the upper operating frequency is limited to **140.0832 
-MHz**. This upper limit is most likely imposed by the reduction in routing 
-resources. The utilization factor in an XC3S50A-4VQG100I FPGA is **99%**, and _~50%_ 
-in an XC3S200A-4VQG100I FPGA. The larger number of LUTs/Slices and routing 
-resources allows Map and Place greater flexibility to satisfy the timing 
-constraints.
-    
-    DCM Multiplier  System Clock (MHz)  SPI Clock (MHz) Max UART bit rate (MHz)
-        4x               58.9824            29.4912         1.8432
-        8x              117.9648            58.9824         1.8432
-        8.5x            125.3376            62.6688         1.8432
-        9x              132.7104            66.3552         1.8432
-        9.5x            140.0832            70.0461         1.8432
+and RS-232/RS-485 transceivers.
 
 Release Notes
 -------------
@@ -326,3 +278,12 @@ MHz. This rate is equivalent to the 117.9848 MHz reported above of for Release
 P16C5x, by using wired-OR bus connections rather than explicit multiplexers. 
 These improvements also provided some reductions in the resource utilization 
 of the project.
+
+####Release 2.5.1
+
+Modified the BMM file to allow the MEM file data fields to be represented in 
+natural order. In other words, unlike the previous release, the most 
+significant nibble is the first (leftmost) character of each data word, and 
+the least significant nibble is the last (rightmost) character in a data word. 
+Also modified the utility provided that converts Intel Hex programming files 
+into files compatible with the Xilinx Data2MEM utility program. 
