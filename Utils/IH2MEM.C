@@ -219,7 +219,8 @@ void main(void)
                      i = 4;
                      j = 0;
 
-                     fprintf(stdout, "%c%c%c\n", rdat[1], rdat[0], rdat[3]);
+                     //fprintf(stdout, "%c%c%c\n", rdat[1], rdat[0], rdat[3]);
+                     fprintf(stdout, "%c%c%c\n", rdat[3], rdat[0], rdat[1]);
 
                      rlen -= 1;      // Decrement record length
 
