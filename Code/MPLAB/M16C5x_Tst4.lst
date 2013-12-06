@@ -1,4 +1,4 @@
-MPASM  5.50                   M16C5X_TST4.ASM   7-28-2013  12:14:21         PAGE  1
+MPASM  5.50                   M16C5X_TST4.ASM   12-5-2013  8:25:30         PAGE  1
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -57,7 +57,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00051 
   00000000            00052 SPI_CR_REn      EQU     0           ; Enable MISO Data Capture
   00000001            00053 SPI_CR_SSel     EQU     1           ; Slv Select: 0 - Ext SEEPROM, 1 - SSP_UART
-MPASM  5.50                   M16C5X_TST4.ASM   7-28-2013  12:14:21         PAGE  2
+MPASM  5.50                   M16C5X_TST4.ASM   12-5-2013  8:25:30         PAGE  2
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -116,7 +116,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00104 ;-------------------------------------------------------------------------------
                       00105 
   00000004            00106 UART_BR_PS      EQU     4           ; Bits 11:8 : Baud rate prescaler - (M - 1)
-MPASM  5.50                   M16C5X_TST4.ASM   7-28-2013  12:14:21         PAGE  3
+MPASM  5.50                   M16C5X_TST4.ASM   12-5-2013  8:25:30         PAGE  3
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -175,7 +175,7 @@ Message[306]: Crossing page boundary -- ensure page bits are set.
                       00156                 
 0006   0C08           00157                 MOVLW   0x08            ; Delay before using SPI I/F
 0007   002F           00158                 MOVWF   DlyCntr
-MPASM  5.50                   M16C5X_TST4.ASM   7-28-2013  12:14:21         PAGE  4
+MPASM  5.50                   M16C5X_TST4.ASM   12-5-2013  8:25:30         PAGE  4
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -191,7 +191,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00166 
 000E   0C30           00167                 MOVLW   0x30            ; UART BRR (Hi) PS[3:0]
 000F   0027           00168                 MOVWF   PortC           ; Output to SPI and to UART
-0010   0C0F           00169                 MOVLW   0x0F            ; UART BRR (Lo) Div[7:0] (115.2k baud)
+0010   0C01           00169                 MOVLW   0x01            ; UART BRR (Lo) Div[7:0] (921.6k baud)
 0011   0027           00170                 MOVWF   PortC
                       00171 
 0012   0705           00172 WaitLp1         BTFSS   PortA,SPI_SR_TF_EF ; Wait for UART UCR, BRR output
@@ -234,7 +234,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
 0028   0A3B           00209                 GOTO    Wr_UART_TF      ; Transmit Extended ASCII as is
                       00210 
 0029   0C7B           00211 Tst_LowerCase   MOVLW   0x7B            ; Test against 'z' + 1
-MPASM  5.50                   M16C5X_TST4.ASM   7-28-2013  12:14:21         PAGE  5
+MPASM  5.50                   M16C5X_TST4.ASM   12-5-2013  8:25:30         PAGE  5
 
 
 LOC  OBJECT CODE     LINE SOURCE TEXT
@@ -281,7 +281,7 @@ LOC  OBJECT CODE     LINE SOURCE TEXT
                       00250 ;-------------------------------------------------------------------------------
                       00251 
                       00252                                 END
-MPASM  5.50                   M16C5X_TST4.ASM   7-28-2013  12:14:21         PAGE  6
+MPASM  5.50                   M16C5X_TST4.ASM   12-5-2013  8:25:30         PAGE  6
 
 
 SYMBOL TABLE
@@ -340,7 +340,7 @@ UART_CR_MD                        00000002
 UART_CR_RA                        00000003
 UART_CR_RTSo                      00000001
 UART_CR_WnR                       00000001
-MPASM  5.50                   M16C5X_TST4.ASM   7-28-2013  12:14:21         PAGE  7
+MPASM  5.50                   M16C5X_TST4.ASM   12-5-2013  8:25:30         PAGE  7
 
 
 SYMBOL TABLE
