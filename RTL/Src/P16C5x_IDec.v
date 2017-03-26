@@ -123,7 +123,7 @@
 //                          ALU, but are used in the P16C5x module. Change is
 //                          cosmetic.
 //
-//  1.30    13J20   MAM     Added direct decode of instruction into a bit maks.
+//  1.30    13J20   MAM     Added direct decode of instruction into a bit mask.
 //                          Bit mask is registered along with other instruction
 //                          decode components.
 //

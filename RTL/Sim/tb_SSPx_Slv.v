@@ -111,7 +111,7 @@ initial begin
     DO   = 16'b0;
 
     // Wait 100 ns for global reset to finish
-    #100 Rst = 0;
+    #101 Rst = 0;
    
     // Add stimulus here
 
@@ -130,39 +130,42 @@ task SSP;
     input   [11:0] DOut;
     
     begin
-           SSEL = 1; MOSI = RAIn[2]; DO = DOut;
-        #5 SCK  = 1; 
-        #5 SCK  = 0; MOSI = RAIn[1];
-        #5 SCK  = 1;
-        #5 SCK  = 0; MOSI = RAIn[0];
-        #5 SCK  = 1;
-        #5 SCK  = 0; MOSI = Cmd;
-        #5 SCK  = 1;
-        #5 SCK  = 0; MOSI = DIn[11];
-        #5 SCK  = 1;
-        #5 SCK  = 0; MOSI = DIn[10];
-        #5 SCK  = 1;
-        #5 SCK  = 0; MOSI = DIn[ 9];
-        #5 SCK  = 1;
-        #5 SCK  = 0; MOSI = DIn[ 8];
-        #5 SCK  = 1;
-        #5 SCK  = 0; MOSI = DIn[ 7];
-        #5 SCK  = 1;
-        #5 SCK  = 0; MOSI = DIn[ 6];
-        #5 SCK  = 1;
-        #5 SCK  = 0; MOSI = DIn[ 5];
-        #5 SCK  = 1;
-        #5 SCK  = 0; MOSI = DIn[ 4];
-        #5 SCK  = 1;
-        #5 SCK  = 0; MOSI = DIn[ 3];
-        #5 SCK  = 1;
-        #5 SCK  = 0; MOSI = DIn[ 2];
-        #5 SCK  = 1;
-        #5 SCK  = 0; MOSI = DIn[ 1];
-        #5 SCK  = 1;
-        #5 SCK  = 0; MOSI = DIn[ 0];
-        #5 SCK  = 1;
-        #5 SCK  = 0; SSEL = 0;
+           SSEL = 1; 
+           MOSI = RAIn[2]; 
+           DO   = DOut;
+           
+        #4 SCK  = 1; 
+        #5 SCK  = 0; #1 MOSI = RAIn[1];
+        #4 SCK  = 1;
+        #5 SCK  = 0; #1 MOSI = RAIn[0];
+        #4 SCK  = 1;
+        #5 SCK  = 0; #1 MOSI = Cmd;
+        #4 SCK  = 1;
+        #5 SCK  = 0; #1 MOSI = DIn[11];
+        #4 SCK  = 1;
+        #5 SCK  = 0; #1 MOSI = DIn[10];
+        #4 SCK  = 1;
+        #5 SCK  = 0; #1 MOSI = DIn[ 9];
+        #4 SCK  = 1;
+        #5 SCK  = 0; #1 MOSI = DIn[ 8];
+        #4 SCK  = 1;
+        #5 SCK  = 0; #1 MOSI = DIn[ 7];
+        #4 SCK  = 1;
+        #5 SCK  = 0; #1 MOSI = DIn[ 6];
+        #4 SCK  = 1;
+        #5 SCK  = 0; #1 MOSI = DIn[ 5];
+        #4 SCK  = 1;
+        #5 SCK  = 0; #1 MOSI = DIn[ 4];
+        #4 SCK  = 1;
+        #5 SCK  = 0; #1 MOSI = DIn[ 3];
+        #4 SCK  = 1;
+        #5 SCK  = 0; #1 MOSI = DIn[ 2];
+        #4 SCK  = 1;
+        #5 SCK  = 0; #1 MOSI = DIn[ 1];
+        #4 SCK  = 1;
+        #5 SCK  = 0; #1 MOSI = DIn[ 0];
+        #4 SCK  = 1;
+        #5 SCK  = 0; #1 SSEL = 0;
         #10;
     end
 endtask

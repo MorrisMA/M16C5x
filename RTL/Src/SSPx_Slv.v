@@ -89,9 +89,26 @@
 //                          circuits as before: BC, EOC, and RDI. SPI Modes 0 or
 //                          3 are still supported.
 //
+//  2.20    14D25   MAM     Encountered an issue whereby RA[2] held in reset
+//                          after SSEL deasserted and then reasserted. The
+//                          asynchronous reset on the signal SSP_Rst, a FF
+//                          clocked on the falling edge of SCK, was changed to
+//                          the combinatorial signal Rst_SSP. Rst_SSP is the
+//                          source of the asynchronous reset of the SSP_Rst FF.
+//                          The additional delay in the SSP_Rst signal caused
+//                          RA[2] to be kept in reset at the start of a new
+//                          SSP transfer cycle. Also added two additional CE
+//                          signals while tracking down this issue: CE_RA and
+//                          CE_WnR. They were previously driven directly by the
+//                          bit counter.
+//
+//  2.21    17C23   MAM     Added another CE, CE_rDO, to improve readability,
+//                          and move a comment to better convey when the read
+//                          data is sampled.
+//
 // Additional Comments: 
 //
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 module SSPx_Slv(
     input   Rst,            // System Reset
@@ -167,9 +184,9 @@ assign En = BC[3] | BC[2];
 //  Load MOSI into RDI using BC to select the active register
 //      Use posedge SCK to sample in middle of bit cell
 
-always @(posedge SCK or posedge SSP_Rst)
+always @(posedge SCK or posedge Rst_SSP)
 begin
-    if(SSP_Rst)
+    if(Rst_SSP)
         RDI <= #1 15'b0;
     else
         case(BC)
@@ -194,35 +211,41 @@ end
 
 //  Assign RA, WnR, and DI bus from RDI and MOSI
 
-always @(negedge SCK or posedge Rst)
+assign CE_RA = (BC == 2);
+
+always @(negedge SCK or posedge Rst_SSP)
 begin
-    if(Rst)
+    if(Rst_SSP)
         RA <= #1 0;
-    else if(BC == 2)
+    else if(CE_RA)
         RA <= #1 RDI[15:13];
 end
 
-always @(negedge SCK or posedge Rst)
+assign CE_WnR = (BC == 3);
+
+always @(negedge SCK or posedge Rst_SSP)
 begin
-    if(Rst)
+    if(Rst_SSP)
         WnR <= #1 0;
     else if(EOC)
         WnR <= #1 0;
-    else if(BC == 3)
+    else if(CE_WnR)
         WnR <= #1 RDI[12];
 end
 
 always @(*) DI <= {RDI[11:1], MOSI};
 
+// Generate MISO: multiplex MOSI and DO using En and BC
+
+assign CE_rDO = (BC == 3);
+
 always @(negedge SCK or posedge Rst)
 begin
     if(Rst)
         rDO <= #1 0;
-    else if(BC == 3)
+    else if(CE_rDO)
         rDO <= #1 DO;
 end        
-
-// Generate MISO: multiplex MOSI and DO using En and BC
 
 always @(*)
 begin

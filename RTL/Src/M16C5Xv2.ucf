@@ -1,0 +1,80 @@
+################################################################################
+#
+#   Clock Constraints
+#
+NET "ClkIn" TNM_NET = ClkIn;
+#TIMESPEC TS_ClkIn = PERIOD "ClkIn" 20.833 ns HIGH 50%;  #  48.0000 MHz 3S200A-4
+#TIMESPEC TS_ClkIn = PERIOD "ClkIn" 16.954 ns HIGH 50%;  #  58.9624 MHz 3S200A-4
+TIMESPEC TS_ClkIn = PERIOD "ClkIn" 15.000 ns HIGH 50%;  #  66.6666 MHz 3S200A-5
+#
+NET "Clk_UART" TNM_NET = Clk_UART;
+#TIMESPEC TS_Clk_UART = PERIOD "Clk_UART" 10.000 ns HIGH 50%; # 100.0000 MHz -4
+TIMESPEC TS_Clk_UART = PERIOD "Clk_UART"  8.000 ns HIGH 50%; # 125.0000 MHz -5
+#
+NET "SPI_SCK" TNM_NET = SPI_SCK;
+#TIMESPEC TS_SPI_SCK = PERIOD "SPI_SCK" 15.000 ns HIGH 50%;  #  66.6666 MHz -4
+TIMESPEC TS_SPI_SCK = PERIOD "SPI_SCK" 12.000 ns HIGH 50%;  #  83.3333 MHz -5
+#
+################################################################################
+#
+#   Area Constraints for the major components
+#
+INST "CPU" AREA_GROUP=CPU;
+AREA_GROUP CPU RANGE=SLICE_X4Y36:SLICE_X19Y55;
+#
+INST "M16C5Xv2" AREA_GROUP=Primitives;
+AREA_GROUP Primitives RANGE=SLICE_X4Y36:SLICE_X19Y55;
+#
+#   This constraints matches the BMM and UCF files
+#
+INST "Mram_PROM3" LOC=RAMB16_X0Y5;
+INST "Mram_PROM2" LOC=RAMB16_X0Y6;
+INST "Mram_PROM1" LOC=RAMB16_X0Y7;
+#
+INST "SPI" AREA_GROUP=SPI;
+AREA_GROUP SPI RANGE=SLICE_X20Y36:SLICE_X23Y55;
+#
+INST "UART" AREA_GROUP=UART;
+AREA_GROUP UART RANGE=SLICE_X4Y8:SLICE_X27Y29;
+#
+################################################################################
+#
+#   Pin Constraints for Chameleon FPGA Shield Board
+#
+NET "nMCLR"     LOC = P83 | IOSTANDARD = "LVCMOS33" | PULLUP ;
+NET "ClkIn"     LOC = P88 | IOSTANDARD = "LVCMOS33" ;
+NET "Clk_UART"  LOC = P85 | IOSTANDARD = "LVCMOS33" ;
+#
+NET "nWDTE"     LOC = P82 | IOSTANDARD = "LVCMOS33" | PULLUP ;
+NET "PROM_WE"   LOC = P68 | IOSTANDARD = "LVCMOS33" | PULLDOWN ;
+#
+NET "nT0CKI"    LOC = P97 | IOSTANDARD = "LVCMOS33" ;
+#
+NET "nCS<0>"    LOC = P27 | IOSTANDARD = "LVCMOS33" ;
+NET "nCS<1>"    LOC = P28 | IOSTANDARD = "LVCMOS33" ;
+#
+NET "SCK"       LOC = P53 | IOSTANDARD = "LVCMOS33" ;
+NET "MOSI"      LOC = P46 | IOSTANDARD = "LVCMOS33" ;
+NET "MISO"      LOC = P51 | IOSTANDARD = "LVCMOS33" | PULLUP ;
+#
+#   Channel A
+#
+NET "TD_A"      LOC = P33 | IOSTANDARD = "LVCMOS33" | SLEW = "SLOW" ;
+NET "nRTS_A"    LOC = P32 | IOSTANDARD = "LVCMOS33" ;
+NET "RD_A"      LOC = P34 | IOSTANDARD = "LVCMOS33" | PULLUP ;
+NET "nCTS_A"    LOC = P31 | IOSTANDARD = "LVCMOS33" | PULLUP ;
+NET "DE_A"      LOC = P36 | IOSTANDARD = "LVCMOS33" | SLEW = "SLOW" ;
+#
+#   Channel B
+#
+NET "TD_B"      LOC = P20 | IOSTANDARD = "LVCMOS33" | SLEW = "SLOW" ;
+NET "nRTS_B"    LOC = P19 | IOSTANDARD = "LVCMOS33" ;
+NET "RD_B"      LOC = P21 | IOSTANDARD = "LVCMOS33" | PULLUP ;
+NET "nCTS_B"    LOC = P7  | IOSTANDARD = "LVCMOS33" | PULLUP ;
+NET "DE_B"      LOC = P23 | IOSTANDARD = "LVCMOS33" | SLEW = "SLOW" ;
+#
+# Test Signals
+#
+NET "LED<0>"    LOC = P48 | IOSTANDARD = "LVCMOS33" ;
+NET "LED<1>"    LOC = P25 | IOSTANDARD = "LVCMOS33" ;
+#

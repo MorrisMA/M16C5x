@@ -45,7 +45,7 @@
 // Design Name:     Synchronous Serial Peripheral (SSP) Interface UART 
 // Module Name:     ../VerilogCoponentsLib/SSP_UART/SSP_UART.v
 // Project Name:    Verilog Components Library
-// Target Devices:  XC3S50A-4VQG100I, XC3S20A-4VQG100I, XC3S700AN-4FFG484I 
+// Target Devices:  XC3S50A-4VQG100I, XC3S200A-4VQG100I, XC3S700AN-4FFG484I 
 // Tool versions:   ISE 10.1i SP3 
 //
 // Description: This module integrates the various elements of a simplified 
@@ -92,7 +92,7 @@
 //                          RAM.
 //
 //  1.11    08G27   MAM     Modified the organization of the SPR window status
-//                          registers to match Table 5 in the 17000-0403C SSP
+//                          registers to match Table 5 in the 1700-0403C SSP
 //                          UART specification.
 //
 //  1.20    08G27   MAM     Modified Tx signal path to include a FF that will 
@@ -188,8 +188,8 @@
 //      (5) SPR - Scratch Pad Register      (3'b100)
 //
 //  The Synchronous Serial Peripheral of the ARM is configured to send 16 bits.
-//  The result is that the 3 most significant bits are interpreted as an regis-
-//  ter select. Bit 12, the fourth transmitted bit, set the write/read mode of
+//  The result is that the 3 most significant bits are interpreted as a regis-
+//  ter select. Bit 12, the fourth transmitted bit, sets the write/read mode of
 //  transfer. The remaining twelve bits, bits 11...0, are data bits. In this
 //  manner, the SSP UART minimizes the number of serial transfers required to
 //  send and receive serial data from the SSP UART. The reads from the TDR/RDR
@@ -237,12 +237,12 @@
 //      1 - iTHE:   Transmit FIFO Half Empty Interrupt Flag
 //      0 - iTFE:   Transmit FIFO Empty Interrupt Flag
 //
-//  Buad Rate Register - BRR (RA = 3'b001) (Write-Only)
+//  Baud Rate Register - BRR (RA = 3'b001) (Write-Only)
 //
 //   11:8 - PS  :   Baud Rate Prescaler (see table below) - load with (M - 1)
 //    7:0 - Div :   Baud Rate Divider (see table below) - load with (N - 1)
 //
-//   {PS, Div}  :   Baud Rate = (Clk / 16) / ((M - 1) * (N - 1))
+//   {PS, Div}  :   Baud Rate = (Clk / 16) / ((PS + 1) * (Div + 1))
 //
 //  Transmit Data Register - TDR (RA = 3'b010)
 //
@@ -268,10 +268,12 @@
 //
 //  MD[1:0] - Operating Mode
 //
-//   2'b00 - RS-232 without Handshaking, xRTS <= RTSi <= RTSo, CTSi <= xCTS
-//   2'b01 - RS-232 with Handshaking, xRTS <= RTSi <= ~TxIdle, CTSi <= xCTS
-//   2'b10 - RS-485 without Loopback, RD <= CTSi <= 1, DE <= RTSi <= ~TxIdle
-//   2'b11 - RS-485 with Loopback, RD <= RxD, DE <= RTSi <= ~TxIdle, CTSi <= 1
+//   2'b00 - RS-232 w/o Handshaking: xRTS <= RTSi <= RTSo,    CTSi <= xCTS
+//   2'b01 - RS-232 w/ Handshaking : xRTS <= RTSi <= ~TxIdle, CTSi <= xCTS
+//   2'b10 - RS-485 w/o Loopback   : RD <= ((TxIdle) ? RxD : 1),
+//                                   DE <= RTSi <= ~TxIdle, CTSi <= 1 
+//   2'b11 - RS-485 w/ Loopback    : RD <= RxD,
+//                                   DE <= RTSi <= ~TxIdle, CTSi <= 1
 //
 //  FMT[3:0] - Asynchronous Serial Format
 //
@@ -314,8 +316,8 @@ module SSP_UART #(
 
     // FIFO Configuration Parameters
 
-    parameter pTF_Depth = 0,                // Tx FIFO Depth: 2**(TF_Depth + 4)
-    parameter pRF_Depth = 3,                // Rx FIFO Depth: 2**(RF_Depth + 4)
+    parameter pTF_Depth = 2,                // Tx FIFO Depth: 2**(TF_Depth + 4)
+    parameter pRF_Depth = 2,                // Rx FIFO Depth: 2**(RF_Depth + 4)
     parameter pTF_Init  = "Src/UART_TF.coe",    // Tx FIFO Memory Initialization
     parameter pRF_Init  = "Src/UART_RF.coe"     // Rx FIFO Memory Initialization
 )(
@@ -360,7 +362,7 @@ module SSP_UART #(
 //  Module Parameters
 // 
 
-localparam pVersion = 8'h23;    // Version: 2.3
+localparam pVersion = 8'h25;    // Version: 2.50
 
 //  Register Addresses
 
@@ -421,7 +423,6 @@ localparam pxFThr = 8;          // TF/RF Half-Full Flag Theshold (%, 4 bits)
     wire    [(pRF_Depth + 4):0] RFCnt;  // RX FIFO Count
     
     reg     [ 7:0] TDR;             // Transmit Data Register
-//    wire    [11:0] RDR;             // Receive Data Register, UART Status Reg
     reg     [11:0] RDR;             // Receive Data Register, UART Status Reg
     reg     [11:0] UCR, USR, SPR;   // UART Control, Status, & Scratch Pad Regs
     reg     [ 7:0] RTFThr;          // UART Rx/Tx FIFO Threshold Register

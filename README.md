@@ -31,6 +31,14 @@ using MOVF xxx,0 instructions. Similarly, the write enables for the three I/O
 ports are asserted whenever the ports are updated. This occurs during MOVWF 
 instructions, or during read- modify-write operations such as XORF, MOVF, etc.
 
+(Clarification: RMW instructions do not generate read strobes in order to 
+prevent the read portion of the operation from advancing a FIFO or generating 
+a clear flag strobe in a status register. Instead, the data from the addressed 
+I/O port is read "quietly", and only during the write portion of the RMW 
+instruction is a strobe generated to write the result back to the addressed 
+I/O port. Thus, RMW operations such as XORF can be used with status and FIFOs 
+without corrupting their state.)
+
 Implementation
 --------------
 

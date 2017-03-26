@@ -1,0 +1,374 @@
+CCS PCB C Compiler, Version 5.006, 9513               27-Apr-14 16:04
+
+               Filename:   C:\MAM\M16C5x\CCS\M16C5x.lst
+
+               ROM used:   116 words (6%)
+                           Largest free fragment is 512
+               RAM used:   4 (17%) at main() level
+                           5 (21%) worst case
+               Stack used: 0 locations
+               Stack size: 2
+
+*
+0000:  GOTO   056
+0001:  GOTO   004
+0002:  GOTO   014
+0003:  GOTO   02E
+*
+07FF:  GOTO   000
+.................... #include <M16C5x.h> 
+.................... #include <16F57.h> 
+.................... //////// Standard Header file for the PIC16F57 device //////////////// 
+.................... #device PIC16F57 
+....................  
+.................... #list 
+....................  
+....................  
+.................... #FUSES NOWDT                 	//No Watch Dog Timer 
+....................  
+.................... #use delay(crystal=20000000) 
+....................  
+....................  
+....................  
+.................... int PortA, PortB, PortC; 
+....................  
+.................... #byte PortA         = 0x05 
+.................... #byte PortB         = 0x06 
+.................... #byte PortC         = 0x07 
+....................  
+.................... #bit  SPI_SR_TF_EF  = 5.0 
+.................... #bit  SPI_SR_TF_FF  = 5.1 
+.................... #bit  SPI_SR_RF_EF  = 5.2 
+.................... #bit  SPI_SR_RF_FF  = 5.3 
+....................  
+.................... int SPI_SR; 
+.................... int Dly_Cntr; 
+.................... int SPI_Cmd, SPI_Addr[3]; 
+.................... int SPI_CR, SPI_DIO_H, SPI_DIO_L, xSPI_CR; 
+....................  
+.................... #byte SPI_SR        = 0x05      // Port A data input is SPI IF Status Register 
+.................... #byte Dly_Cntr      = 0x10      // Delay Counter 
+.................... #byte SPI_Cmd       = 0x18      // SPI Command Buffer 
+.................... #byte SPI_Addr      = 0x19      // SPI Address Buffer 
+.................... #byte SPI_CR        = 0x1C      // Holding Register for SPI Control Register 
+.................... #byte SPI_DIO_H     = 0x1D      // Holding Register for UART Rd Data High 
+.................... #byte SPI_DIO_L     = 0x1E      // Holding Register for UART Rd Data Low 
+.................... #byte xSPI_CR       = 0x1F      // Holding Register for Ext SPI Configuration 
+....................  
+.................... #bit  SPI_CR_REn    = 0x1C.0    // Receive Enable 
+.................... #bit  SPI_CR_SSel   = 0x1C.1    // Internal SPI: 1; External SPI: 0 
+.................... #bit  SPI_CR_MD0    = 0x1C.2    // SPI Mode: 0, 1, 2, 3 
+.................... #bit  SPI_CR_MD1    = 0x1C.3 
+.................... #bit  SPI_CR_BR0    = 0x1C.4    // SPI SCK Bit Rate: 48MHz/(2**(BR + 1)) 
+.................... #bit  SPI_CR_BR1    = 0x1C.5 
+.................... #bit  SPI_CR_BR2    = 0x1C.6 
+.................... #bit  SPI_CR_DIR    = 0x1C.7    // SPI Shift Direction: 0 - MSB; 1 - LSB 
+....................  
+.................... #bit  SPI_DIO_RRdy  = 0x1D.2    // UART Rx Data Ready Bit 
+.................... #bit  SPI_DIO_RErr  = 0x1D.0    // UART Rx Data Error Bit 
+....................  
+.................... #bit  RD_Ext_ASCII  = 0x1E.7    // MSB of ASCII data from UART 
+....................  
+.................... #bit  xSPI_Manual   = 0x1F.7    // Enables manual assertion of nCS[1:0] 
+.................... #bit  xSPI_MRAM     = 0x1F.6    // Enables External SPI MRAM CS 
+.................... #bit  xSPI_Flash    = 0x1F.5    // Enables External SPI Flash CS 
+....................  
+.................... #define COM0 0x00               // UART #1: SSP[15] = RA[2] = 0 
+.................... #define COM1 0x80               // UART #2: SSP[15] = RA[2] = 1 
+....................  
+.................... #define FLSH 0x20               // TRIS A.5 Selects External SPI Flash 
+.................... #define MRAM 0x40               // TRIS A.6 selects External SPI MRAM 
+....................  
+.................... #define READ  0x03              // Read 
+.................... #define WRENA 0x06              // Write Enable 
+.................... #define WRITE 0x02              // Write Page (256) 
+.................... #define WRDIS 0x04              // Write Disable 
+.................... #define VSRWE 0x50              // Volatile SR Write Enable 
+.................... #define RDSR1 0x05              // Read Status Register #1 
+.................... #define WRSR1 0x01              // Write Status Register #1 
+.................... #define RDSR2 0x35              // Read Status register #2 
+.................... #define WRSR2 0x31              // Write Status Register #2 
+.................... #define RDSR3 0x15              // Read Status Register #3 
+.................... #define WRSR3 0x11              // Write Status Register #3 
+.................... #define ERASE 0xC7              // Chip Erase (0xC7/0x60) 
+.................... #define EPSUS 0x75              // Erase/Program Suspend 
+.................... #define EPRES 0x7A              // Erase/Program Resume 
+.................... #define PWRDN 0xB9              // Power Down 
+.................... #define RLSPD 0xAB              // Release Power Down (plus ID) 
+.................... #define MANID 0x90              // Manufacturer/Device ID 
+.................... #define JEDID 0x9F              // JEDEC ID (MAN ID/ID[15:0] 
+.................... #define GLBLK 0x7E              // Global Block Lock 
+.................... #define GLBUL 0x98              // Global Block Unlock 
+.................... #define ENRST 0x66              // Enable Reset 
+.................... #define RESET 0x99              // Reset Device 
+.................... #define RDUID 0x4B              // Read Unique ID 
+.................... #define ERA04 0x20              // Sector Erase (4kB) 
+.................... #define ERA32 0x52              // Block Erase (32kB) 
+.................... #define ERA64 0xD8              // Block Erase (64kB) 
+.................... #define FASTR 0x0B              // Fast Read 
+.................... #define RSFDP 0x5A              // Read SFDP Register 
+.................... #define ERSEC 0x44              // Erase Security Register 
+.................... #define WRSEC 0x42              // Write/Program Security Register 
+.................... #define RDSEC 0x48              // Read Security Register 
+.................... #define LKIBL 0x36              // Lock Individual Block 
+.................... #define ULIBL 0x39              // Unlock Individual Block 
+.................... #define RDBLK 0x3D              // Read Block Lock 
+....................  
+.................... #use fast_io(ALL) 
+....................  
+.................... void set_baud(int port) 
+.................... { 
+....................     SPI_CR_REn  = 0; 
+*
+0004:  BCF    1C.0
+....................     SPI_CR_SSel = 1; 
+0005:  BSF    1C.1
+....................     set_tris_C(SPI_CR); 
+0006:  MOVF   1C,W
+0007:  TRIS   7
+....................      
+....................     PortC = (port ^ 0x13); 
+0008:  MOVF   0D,W
+0009:  XORLW  13
+000A:  MOVWF  07
+....................     PortC = 0x00; 
+000B:  CLRF   07
+....................     PortC = (port ^ 0x30); 
+000C:  MOVF   0D,W
+000D:  XORLW  30
+000E:  MOVWF  07
+....................     PortC = 0x01; 
+000F:  MOVLW  01
+0010:  MOVWF  07
+....................  
+....................     while(~SPI_SR_TF_EF); 
+0011:  BTFSS  05.0
+0012:  GOTO   011
+0013:  RETLW  00
+.................... } 
+....................  
+.................... int1 get_char(int port) 
+.................... { 
+....................     SPI_CR_REn  = 1; 
+0014:  BSF    1C.0
+....................     SPI_CR_SSel = 1; 
+0015:  BSF    1C.1
+....................     set_tris_C(SPI_CR); 
+0016:  MOVF   1C,W
+0017:  TRIS   7
+....................      
+....................     PortC = (port ^ 0x60); PortC = 0xFF; 
+0018:  MOVF   0D,W
+0019:  XORLW  60
+001A:  MOVWF  07
+001B:  MOVLW  FF
+001C:  MOVWF  07
+....................      
+....................     while(~SPI_SR_TF_EF); SPI_DIO_H = PortC; 
+001D:  BTFSS  05.0
+001E:  GOTO   01D
+001F:  MOVF   07,W
+0020:  MOVWF  1D
+....................     while( SPI_SR_RF_EF); SPI_DIO_L = PortC; 
+0021:  BTFSC  05.2
+0022:  GOTO   021
+0023:  MOVF   07,W
+0024:  MOVWF  1E
+....................      
+....................     return(SPI_DIO_RRdy && ~SPI_DIO_RErr); 
+0025:  BTFSS  1D.2
+0026:  GOTO   029
+0027:  BTFSS  1D.0
+0028:  GOTO   02B
+0029:  MOVLW  00
+002A:  GOTO   02C
+002B:  MOVLW  01
+002C:  MOVWF  09
+002D:  RETLW  00
+.................... } 
+....................  
+.................... void put_char(int port) 
+.................... { 
+....................         // Process received data - lc to uc and uc to lc, otherwise unchanged 
+....................          
+....................         if(~RD_Ext_ASCII) {     // if Extended ASCII data, skip conversion 
+002E:  BTFSC  1E.7
+002F:  GOTO   04A
+....................             if((SPI_DIO_L >= 'A') && (SPI_DIO_L <= 'z')) { 
+0030:  MOVLW  40
+0031:  MOVWF  08
+0032:  MOVF   1E,W
+0033:  SUBWF  08,W
+0034:  BTFSC  03.0
+0035:  GOTO   04A
+0036:  MOVLW  7A
+0037:  MOVWF  08
+0038:  MOVF   1E,W
+0039:  SUBWF  08,W
+003A:  BTFSS  03.0
+003B:  GOTO   04A
+....................                 if((SPI_DIO_L <= 'Z') || (SPI_DIO_L >= 'a')) { 
+003C:  MOVLW  5A
+003D:  MOVWF  08
+003E:  MOVF   1E,W
+003F:  SUBWF  08,W
+0040:  BTFSC  03.0
+0041:  GOTO   048
+0042:  MOVLW  60
+0043:  MOVWF  08
+0044:  MOVF   1E,W
+0045:  SUBWF  08,W
+0046:  BTFSC  03.0
+0047:  GOTO   04A
+....................                     SPI_DIO_L ^= 0x20; 
+0048:  MOVLW  20
+0049:  XORWF  1E,F
+....................                 } 
+....................             } 
+....................         } 
+....................          
+....................         // Write processed data to UART transmit FIFO 
+....................  
+....................         SPI_CR_REn  = 0; 
+004A:  BCF    1C.0
+....................         SPI_CR_SSel = 1; 
+004B:  BSF    1C.1
+....................         set_tris_C(SPI_CR); 
+004C:  MOVF   1C,W
+004D:  TRIS   7
+....................          
+....................         PortC = (port ^ 0x50); PortC = SPI_DIO_L;    // Transmit data 
+004E:  MOVF   0D,W
+004F:  XORLW  50
+0050:  MOVWF  07
+0051:  MOVF   1E,W
+0052:  MOVWF  07
+....................          
+....................         while(~SPI_SR_TF_EF); 
+0053:  BTFSS  05.0
+0054:  GOTO   053
+0055:  RETLW  00
+.................... } 
+....................  
+.................... void xSPI_Manual(int Manual) 
+.................... { 
+....................     if(Manual) xSPI_CR |= 0x80; else xSPI_CR &= ~0x80; 
+....................     set_tris_A(xSPI_CR); 
+.................... } 
+....................  
+.................... void put_SPI_data24(int data[3]) 
+.................... { 
+....................     SPI_CR_REn = 0; 
+....................     set_tris_C(SPI_CR); 
+....................      
+....................     while(SPI_SR_TF_FF); PortC = data[2]; 
+....................     while(SPI_SR_TF_FF); PortC = data[1]; 
+....................     while(SPI_SR_TF_FF); PortC = data[0]; 
+.................... } 
+....................  
+.................... void put_SPI_data16(int data[2]) 
+.................... { 
+....................     SPI_CR_REn = 0; 
+....................     set_tris_C(SPI_CR); 
+....................      
+....................     while(SPI_SR_TF_FF); PortC = data[1]; 
+....................     while(SPI_SR_TF_FF); PortC = data[0]; 
+.................... } 
+....................  
+.................... void put_SPI_data08(int data) 
+.................... { 
+....................     SPI_CR_REn = 0; 
+....................     set_tris_C(SPI_CR); 
+....................      
+....................     while(SPI_SR_TF_FF); PortC = data; 
+.................... } 
+....................  
+.................... void get_SPI_data16(void) 
+.................... { 
+....................     while(~SPI_SR_TF_EF); 
+....................      
+....................     SPI_CR_REn = 1; 
+....................     set_tris_C(SPI_CR); 
+....................      
+....................     PortC = 0xFF; PortC = 0xFF; 
+....................  
+....................     while(~SPI_SR_TF_EF); SPI_DIO_H = PortC; 
+....................     while( SPI_SR_RF_EF); SPI_DIO_L = PortC; 
+.................... } 
+....................  
+.................... void get_SPI_data08(void) 
+.................... { 
+....................     while(~SPI_SR_TF_EF); 
+....................      
+....................     SPI_CR_REn  = 1; 
+....................     set_tris_C(SPI_CR); 
+....................      
+....................     PortC = 0xFF; 
+....................  
+....................     while(~SPI_SR_TF_EF); SPI_DIO_L = PortC; 
+.................... } 
+....................  
+....................  
+.................... void main() 
+.................... { 
+....................     set_tris_A(0x1F); 
+0056:  MOVLW  1F
+0057:  TRIS   5
+....................     set_tris_B(0x1F); 
+0058:  TRIS   6
+....................     xSPI_CR = 0x1F; 
+0059:  MOVWF  1F
+....................      
+....................     set_tris_C(0x1E); 
+005A:  MOVLW  1E
+005B:  TRIS   7
+....................     SPI_CR = 0x1E; 
+005C:  MOVWF  1C
+....................  
+....................     Dly_Cntr = 8; 
+005D:  MOVLW  08
+005E:  MOVWF  10
+....................     while(--Dly_Cntr > 0); 
+005F:  DECFSZ 10,F
+0060:  GOTO   05F
+....................      
+....................     set_baud(COM0); 
+0061:  CLRF   0D
+0062:  CALL   004
+....................     set_baud(COM1); 
+0063:  MOVLW  80
+0064:  MOVWF  0D
+0065:  CALL   004
+....................      
+....................     while(TRUE) { 
+....................         if(get_char(COM0)) { 
+0066:  CLRF   0D
+0067:  CALL   014
+0068:  MOVF   09,F
+0069:  BTFSC  03.2
+006A:  GOTO   06D
+....................             put_char(COM0); 
+006B:  CLRF   0D
+006C:  CALL   02E
+....................         }     
+....................          
+....................         if(get_char(COM1)) { 
+006D:  MOVLW  80
+006E:  MOVWF  0D
+006F:  CALL   014
+0070:  MOVF   09,F
+0071:  BTFSC  03.2
+0072:  GOTO   076
+....................             put_char(COM1); 
+0073:  MOVLW  80
+0074:  MOVWF  0D
+0075:  CALL   02E
+....................         }     
+0076:  GOTO   066
+....................     } 
+....................  
+.................... } 
+0077:  SLEEP
+
+Configuration Fuses:
+   Word  1: 0FFA   HS NOWDT NOPROTECT

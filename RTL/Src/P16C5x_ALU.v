@@ -68,7 +68,7 @@
 //                          multiplexers and make better use of the built-in
 //                          functionality of the logic blocks in the FPGA.
 //
-//  1.30    13J20   MAM     Removed the internal bit mask ROM, and added an bit
+//  1.30    13J20   MAM     Removed the internal bit mask ROM, and added a bit
 //                          mask input port. Reconfigured Bit Unit to use the
 //                          bit mask input port.
 // 

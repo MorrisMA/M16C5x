@@ -220,7 +220,12 @@
 //                          bits in length to be transmitted. With the removal
 //                          the incorrect conditional logic in Rst_SCK, the SSP
 //                          Slave and UART modules operate in either SPI Mode 0
-//                          or Mode 3.  
+//                          or Mode 3.
+//
+//  1.31    17C25   MAM     Changed initialization from 7 to ~0 for the bit
+//                          counter. Ensures that if the bit counter width is
+//                          changed, the counter is initialized to max value w/o
+//                          changing the initialization constant.
 //
 // Additional Comments:
 //
@@ -424,7 +429,7 @@ assign Rst_BitCnt = Rst | Ld | (TC_BitCnt & CE_OSR);
 always @(posedge Clk)
 begin
     if(Rst_BitCnt)
-        BitCnt <= #1 7;
+        BitCnt <= #1 ~0;
     else if(CE_BitCnt)
         BitCnt <= #1 (BitCnt - 1);
 end
