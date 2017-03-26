@@ -1,7 +1,7 @@
 M16C5x Soft-Core Microcomputer
 =======================
 
-Copyright (C) 2013, Michael A. Morris <morrisma@mchsi.com>.
+Copyright (C) 2013-2017, Michael A. Morris <morrisma@mchsi.com>.
 All Rights Reserved.
 
 Released under LGPL.
@@ -12,13 +12,9 @@ General Description
 This project demonstrates the use of a PIC16C5x-compatible core as an FPGA-
 based processor. It implements the 12-bit instruction set, the timer 0 module, 
 the pre-scaler, and the watchdog timer. The core provided here is compatible 
-with instruction set, but it is not a cycle accurate model of any particular 
-PIC microcomputer. 
-
-As configured, the core supports single cycle (1) operation with internal 
-block RAM serving as program memory. In addition to the block RAM program 
-store, a 4x clock generator and reset controller is included as part of the 
-demonstration. 
+with the instruction set, but it is not a cycle accurate model of any 
+particular PIC microcomputer. As configured, the core supports single (1) 
+cycle operation with internal block RAM serving as program memory.  
 
 Three I/O ports are supported, but they are accessed as external registers and 
 buffers using a bidirectional data bus. The TRIS I/O control registers are 
@@ -45,8 +41,7 @@ Implementation
 The implementation of the core provided consists of several Verilog source files 
 and memory initialization files:
 
-    M16C5x.v                - Top level module
-        M16C5x_ClkGen.v     - M16C5x Clock/Reset Generator
+    M16C5Xv2.v              - Top level module
         P16C5x.v            - PIC16C5x-compatible processor core
             P16C5x_IDEC.v   - ROM-based instruction decoder for PIC16C5x core
             P16C5x_ALU.v    - Arithmetic & Logic Unit for PIC16C5x core
@@ -55,7 +50,7 @@ and memory initialization files:
                 TF_Init.coe - Transmit FIFO Initialization file
                 RF_Init.coe - Receive FIFO Initialization file
             SPIxIF.v        - Configurable Master SPI I/F with clock Generator
-        M16C5x_UART.v       - UART with Serial Interface
+        M16C5x_UARTv2.v     - UART with Serial Interface
             SSPx_Slv.v      - SSP-compatible Slave Interface
             SSP_UART.v      - SSP-compatible UART
                 re1ce.v     - Rising Edge Clock Domain Crossing Synchronizer
@@ -79,14 +74,16 @@ and memory initialization files:
 Verilog tesbench files are included for the processor core, the FIFO, and the 
 SPI modules.
 
-    tb_M16C5x.v             - testbench for the soft-core processor module
+    tb_M16C5Xv2.v           - testbench for the soft-core processor module
     tb_P16C5x.v             - testbench for the processor core module
     tb_DPSFmnCE.v           - testbench for the LUT-based FIFO module
     tb_SPIxIF.v             - testbench for the SPI Master Interface module
     
 Also provided is the MPLAB project and the source files used to create the 
 memory initialization files for testing the microcomputer application. These 
-files are found in the MPLAB subdirectory of the Code directory.
+files are found in the MPLAB subdirectory of the Code directory. An example 
+CCS C project is also included that performs the same functions as the 
+assembly langugage version test programs included in the MPLAB subdirectory.
 
 Finally, the configuration of the Xilinx tools used to synthesize, map, place, 
 and route are captured in the the TCL file:
@@ -97,7 +94,7 @@ Run this TCL script from within the TCL console of ISE, or examine it in a
 text editor, to set up the project files and to set the tools to the options 
 used to achieve the results provided here.
         
-Added utility program to convert MPLAB Intel Hex programming files into MEM 
+Added utility program to convert MPLAB/CCS Intel Hex programming files into MEM 
 files for use with Xilinx Data2MEM utility program to speed the process of 
 incorporating program/data/parameter data into block RAMs. TCL also 
 incorporates the process parameter changes to get the BMM file processed by 
@@ -112,32 +109,32 @@ Map/PAR/Bitgen.
 Synthesis
 ---------
 
-The primary objective of the M16C5x is to synthesize a processor core, 4kW of 
-program memory, a buffered SPI master, and a buffered UART into a Xilinx 
-XC3S50A-4VQG100I FPGA. The present implementation includes the P16C5x core, 
-4kW of program memory, a dual-channel SPI Master I/F, and an SSP-compatible 
-UART supporting baud rates from 3M bps to 1200 bps.
+The primary objective of the M16C5Xv2 project is to synthesize a processor 
+core, 4kW of program memory, a buffered SPI master, and two (2) buffered UART 
+into a Xilinx XC3S200A-5VQG100I FPGA. The present implementation includes the 
+P16C5x core, 4kW of program memory, a dual-channel SPI Master I/F, and two 
+SSP- compatible UARTs supporting baud rates from 3M bps to less than 1200 bps 
+using a clock frequency of 48.0000 MHz for the core and UART. (Note: synthesis 
+and PAR allow an input frequency of 60 MHz for a -4 Spartan-3A FPGA.)
 
-Using ISE 10.1i SP3, the implementation results for an XC3S50A-4VQ100I are as 
+Using ISE 10.1i SP3, the implementation results for an XC3S200A-5VQ100I are as 
 follows:
 
-    Number of Slice FFs:                619 of 1408      43%
-    Number of 4-input LUTs:            1287 of 1408      92%
-    Number of Occupied Slices:          701 of  704      99%
-    Total Number of 4-input LUTs:      1333 of 1408      94%
+    Number of Slice FFs:                772 of 3584      21%
+    Number of 4-input LUTs:            1671 of 3584      46%
+    Number of Occupied Slices:          907 of 1792      50%
+    Total Number of 4-input LUTs:      1722 of 3584      48%
 
-                    Logic:             1052
-                    Route-Through:       46
+                    Logic:             1325
+                    Route-Through:       51
                     16x1 RAMs:            8
-                    Dual-Port RAMs:     194
+                    Dual-Port RAMs:     306
                     32x1 RAMs:           32
-                    Shift Registers:      1
 
-    Number of BUFGMUXs:                   4 of   24      16%
-    Number of DCMs:                       1 of    2      50%
+    Number of BUFGMUXs:                   3 of   24      12%
     Number of RAMB16BWEs                  3 of    3     100%
 
-    Best Case Achievable:           12.381 ns (0.119 ns Setup, 0.691 ns Hold)
+    Best Case Achievable:   14.902 ns (0.099 ns Setup, 0.535 ns Hold)
 
 Status
 ------
@@ -295,3 +292,9 @@ significant nibble is the first (leftmost) character of each data word, and
 the least significant nibble is the last (rightmost) character in a data word. 
 Also modified the utility provided that converts Intel Hex programming files 
 into files compatible with the Xilinx Data2MEM utility program. 
+
+###Release 2.60
+
+Cleaned up comments, added missing source HDL files for processor top and UART 
+top for dual UART configuration, and added file and testbench for Single Port 
+Synchronous LIFO module. 
