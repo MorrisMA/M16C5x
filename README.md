@@ -146,7 +146,7 @@ and RS-232/RS-485 transceivers.
 Release Notes
 -------------
 
-###Release 1.0
+### Release 1.0
 
 In this release, the M16C5x has been synthesized, mapped, placed, routed, and 
 used to configure an FPGA. The FPGA used for this initial test of the M16C5x 
@@ -169,7 +169,7 @@ Work will continue to verify the testbench results with the FPGA. The next
 release should include the UART, and test the ability of the core to 
 send/receive data using the FIFOs at rates of 115,200 baud or greater.
 
-###Release 2.0
+### Release 2.0
 
 In this release, the UART has been addded. An update has been made to the SPI 
 I/F Master function; update correct fault with the framing of SPI Mode 3 
@@ -180,7 +180,7 @@ BTFSC/BTFSS instructions.
 UART integrated with the Release 1.0 core. Verification of the integrated 
 interface is underway.
 
-###Release 2.1
+### Release 2.1
 
 Testing with an M16C5x core processor program assembled using 
 MPLAB and ISIM showed that polling of the UART status register to determine 
@@ -214,7 +214,7 @@ receive FIFO can be reduced to accomodate some additional functions. Synthesis
 and MAP/PAR able to implement the design. There is also some place holder 
 logic that can be used for other purposes.
 
-###Release 2.2
+### Release 2.2
 
 Updated the soft-core so as to be able to parameterize the microcontroller 
 from the top module. Changed the frequency multiplication from 4 to 5 in order 
@@ -228,7 +228,7 @@ Data2MEM tool to insert modified program contents into the affected Block RAMs
 using MEM files dereived from standard MPLAB outputs. Tutorial on this subject 
 is being prepared and will be released on an associated Wiki soon.
 
-###Release 2.3
+### Release 2.3
 
 Updated the soft-core microcomputer. Fixed the UART clock, Clk_UART, to twice 
 the input frequency. This means that the UART operates with a fixed reference 
@@ -245,7 +245,7 @@ baud rate clock of the UART. Thus, although the rest of circuits simulate as
 expected, the transmit shift register never shifts because there's an 
 "unknown" signal level applied on the bit clock.
 
-###Release 2.4
+### Release 2.4
 
 Polling the UART's Receive Data Register (RDR) uncovered a race condition like 
 that previously found and corrected in regards to polling the UART Status 
@@ -272,9 +272,9 @@ This release is expected to be the last public release of this soft-core
 microcomputer. The released core and peripherals are sufficient to demonstrate 
 a non-trivial FPGA implementation of a soft-core microcomputer. Further 
 developments will be focused on improving access to the internal block RAMs, 
-and improving the I/O capabilities of the release core.
+and improving the I/O capabilities of the released core.
 
-###Release 2.5
+### Release 2.5
 
 Converted the core to operate in a single cycle mode with the block RAM 
 memories of the FPGA. Operating frequency, in a -4 Spartan 3A FPGA, is 60+ 
@@ -284,7 +284,7 @@ P16C5x, by using wired-OR bus connections rather than explicit multiplexers.
 These improvements also provided some reductions in the resource utilization 
 of the project.
 
-####Release 2.5.1
+#### Release 2.5.1
 
 Modified the BMM file to allow the MEM file data fields to be represented in 
 natural order. In other words, unlike the previous release, the most 
@@ -293,8 +293,8 @@ the least significant nibble is the last (rightmost) character in a data word.
 Also modified the utility provided that converts Intel Hex programming files 
 into files compatible with the Xilinx Data2MEM utility program. 
 
-###Release 2.60
+### Release 2.60
 
 Cleaned up comments, added missing source HDL files for processor top and UART 
-top for dual UART configuration, and added file and testbench for Single Port 
-Synchronous LIFO module. 
+top for the dual UART configuration, and added file and testbench for Single 
+Port Synchronous LIFO module. 
