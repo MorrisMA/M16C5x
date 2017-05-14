@@ -1,6 +1,4 @@
+
+#Created by Constraints Editor (xc6slx4-tqg144-3) - 2017/05/14
 NET "Clk" TNM_NET = Clk;
-#
-#TIMESPEC TS_Clk = PERIOD "Clk" 16.954 ns HIGH 50%;      # 58.9824 MHz
-TIMESPEC TS_Clk = PERIOD "Clk" 16.666 ns HIGH 50%;      # 60.0000 MHz
-#
-#TIMESPEC TS_P2P = FROM "PADS" TO "PADS" 20 ns;
+TIMESPEC TS_Clk = PERIOD "Clk" 10.000 ns HIGH 50%;

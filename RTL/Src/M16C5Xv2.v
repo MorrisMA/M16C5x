@@ -118,6 +118,10 @@
 //  2.60    14D13   MAM     Modified to support dual UARTs. Second UART selected
 //                          when SSP RA[2] is set, and first UART is selected
 //                          when SSP RA[2] is not set.
+//
+//  2.61    17D04   MAM     Changed parameters for WDT to match those of the 
+//                          processor module. Added parameters to processor 
+//                          instantiation to support precise WDT TO intervals.
 // 
 // Additional Comments: 
 //
@@ -125,9 +129,10 @@
 
 module M16C5Xv2 #(
     // P16C5x Module Parameter Settings
-    
-    parameter pWDT_Size  = 20,              // 20 - synthesis; 10 - Simulation
+ 
     parameter pRstVector = 12'h7FF,         // Reset Vector Location (PIC16F59)
+    parameter pWDT_Size  = 24,              // Use 24 for synth. and 10 for Sim.
+    parameter pWDT_TOVal = 12000000,        // 0.25 sec @48MHz
 //    parameter pUserProg  = "Src/M16C5x_Tst4.coe",   // Tst Pgm file: 4096 x 12
     parameter pUserProg  = "Src/M16C5x.coe",   // Tst Pgm file: 4096 x 12
     parameter pRAMA_Init = "Src/RAMA.coe",  // RAM A initial value file ( 8x8)
@@ -249,6 +254,7 @@ assign T0CKI = ~nT0CKI_IFD;
 P16C5x  #(
             .pRstVector(pRstVector),
             .pWDT_Size(pWDT_Size),
+            .pWDT_TOVal(pWDT_TOVal),          
             .pRAMA_Init(pRAMA_Init),
             .pRAMB_Init(pRAMB_Init)
         ) CPU (
@@ -272,9 +278,15 @@ P16C5x  #(
             .RE_PORTA(RE_PORTA), 
             .RE_PORTB(RE_PORTB), 
             .RE_PORTC(RE_PORTC),
-            
+
             .IO_DO(IO_DO), 
-            .IO_DI(IO_DI), 
+            .IO_DI(IO_DI)
+
+`ifdef DEBUG
+            ,
+//
+//  Debug Outputs
+//
 
             .Rst(),
 
@@ -302,6 +314,7 @@ P16C5x  #(
             .WDT_TO(), 
             .PSCntr(), 
             .PSC_Pls()
+`endif
         );
 
 ////////////////////////////////////////////////////////////////////////////////

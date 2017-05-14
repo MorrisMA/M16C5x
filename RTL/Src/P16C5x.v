@@ -109,30 +109,33 @@
 
 module P16C5x #(
     parameter pRstVector = 12'h7FF,         // Reset Vector Location (PIC16F59)
-    parameter pWDT_Size  = 20,              // Use 20 for synth. and 10 for Sim.
+    parameter pWDT_Size  = 24,              // Use 24 for synth. and 10 for Sim.
+    parameter pWDT_TOVal = 12000000,        // 0.25 sec @48MHz
     parameter pRAMA_Init = "Src/RAMA.coe",  // RAM A initial value file ( 8x8)
     parameter pRAMB_Init = "Src/RAMB.coe"   // RAM B initial value file (64x8)
 )(
-    input   POR,                // In  - System Power-On Reset
+    input   POR,                            // In  - System Power-On Reset
 
-    input   Clk,                // In  - System Clock
-    input   ClkEn,              // In  - Processor Clock Enable
+    input   Clk,                            // In  - System Clock
+    input   ClkEn,                          // In  - Processor Clock Enable
 
-    input   MCLR,               // In  - Master Clear Input
-    input   T0CKI,              // In  - Timer 0 Clock Input
+    input   MCLR,                           // In  - Master Clear Input
+    input   T0CKI,                          // In  - Timer 0 Clock Input
 
-    input   WDTE,               // In  - Watchdog Timer Enable
+    input   WDTE,                           // In  - Watchdog Timer Enable
 
-    output  reg [11:0] PC,      // Out - Program Counter
-    input   [11:0] ROM,         // In  - Instruction Data Input
+    output  reg [11:0] PC,                  // Out - Program Counter
+    input   [11:0] ROM,                     // In  - Instruction Data Input
     
     output  WE_TRISA, WE_TRISB, WE_TRISC,   // Out - Tristate Register X WE
     output  WE_PORTA, WE_PORTB, WE_PORTC,   // Out - Port X Output Register
     output  RE_PORTA, RE_PORTB, RE_PORTC,   // In  - Port X Input Register
 
-    output  [7:0] IO_DO,        // Out - I/O Bus Data Output
-    input   [7:0] IO_DI,        // In  - I/O Bus Data Input
+    output  [7:0] IO_DO,                    // Out - I/O Bus Data Output
+    input   [7:0] IO_DI                     // In  - I/O Bus Data Input
 
+`ifdef DEBUG
+    ,
 //
 //  Debug Outputs
 //
@@ -172,6 +175,7 @@ module P16C5x #(
 
     output  reg [7:0] PSCntr,   // Out - Prescaler Counter Output
     output  PSC_Pls             // Out - Prescaler Count Pulse Output
+`endif
 );
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -239,8 +243,46 @@ wire    WE_PSW;             // Write Enable for STATUS[2:0]: {Z, DC, C}
 //  ALU Declarations
 //
 
-wire    C, DC, Z;       // ALU Status Outputs
-wire    Z_Tst, g;       // Zero and Bit Test Condition Code 
+wire    C, DC, Z;           // ALU Status Outputs
+wire    Z_Tst, g;           // Zero and Bit Test Condition Code 
+
+`ifndef DEBUG
+    reg     Rst;            // Out - Internal Core Reset
+
+    reg     [5:0] OPTION;   // Out - Processor Configuration Register Output
+    
+    reg     [11:0] IR;      // Out - Internal Instruction Register
+    wire    [ 9:0] dIR;     // Out - Pipeline Register (Non-ALU Instruct.)
+    wire    [11:0] ALU_Op;  // Out - Pipeline Register (ALU Instructions)
+    wire    [ 8:0] KI;      // Out - Pipeline Register (Literal)
+    wire    [ 7:0] Msk;     // Out - Pipeline Register Bit Mask
+    wire    Err;            // Out - Instruction Decode Error Output
+
+    reg     Skip;           // Out - Skip Next Instruction
+
+    reg     [11:0] TOS;     // Out - Top-Of-Stack Register Output
+    reg     [11:0] NOS;     // Out - Next-On-Stack Register Output
+
+    wire    [7:0] W;        // Out - Working Register Output
+
+    wire    [7:0] FA;       // Out - File Address Output
+    wire    [7:0] DO;       // Out - File Data Input/ALU Data Output
+    wire    [7:0] DI;       // Out - File Data Output/ALU Data Input
+
+    reg     [7:0] TMR0;     // Out - Timer 0 Timer/Counter Output
+    reg     [7:0] FSR;      // Out - File Select Register Output
+    wire    [7:0] STATUS;   // Out - Processor Status Register Output
+
+    wire    T0CKI_Pls;      // Out - Timer 0 Clock Edge Pulse Output
+
+    reg     WDTClr;         // Out - Watchdog Timer Clear Output
+    reg     [pWDT_Size-1:0] WDT;    // Out - Watchdog Timer
+    reg     WDT_TC;
+    wire    WDT_TO;         // Out - Watchdog Timer Timeout Output
+
+    reg     [7:0] PSCntr;   // Out - Prescaler Counter Output
+    wire    PSC_Pls;        // Out - Prescaler Count Pulse Output
+`endif
 
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
@@ -248,7 +290,7 @@ wire    Z_Tst, g;       // Zero and Bit Test Condition Code
 //  Top Level Implementation
 //
 
-assign CE = ClkEn & ~PwrDn;         // Internal Clock Enable, refer to comments
+assign CE = ClkEn & ~PwrDn;     // Internal Clock Enable, refer to comments
 
 assign Rst_M16C5x = (POR | MCLR | WDT_TO);      // Internal Processor Reset
 
@@ -434,7 +476,7 @@ assign CE_OPTION = CE & WE_OPTION;
 
 always @(posedge Clk)
 begin
-    if(POR)
+    if(Rst)
         OPTION <= #1 8'b0011_1111;
     else if(CE_OPTION)
         OPTION <= #1 W;
@@ -479,21 +521,22 @@ begin
     if(Rst_PD)
         PD <= #1 0;
     else if(CE_PD)
-        PD <= #1 1;
+        PD <= #1 ~0;
 end
 
 //  PwrDn - Sleep Mode Control FF: Set by SLEEP instruction, cleared by Rst
 //          Differs from PD in that it is not readable and does not maintain
-//          its state through Reset. Gates CE to rest of the processor.
+//          its state through Rst. Gates CE to rest of the processor.
 
-assign CE_PwrDn = ClkEn & WE_SLEEP;
+assign Rst_PwrDn = POR | MCLR | WDT_TO;
+assign CE_PwrDn  = ClkEn & WE_SLEEP;
 
 always @(posedge Clk)
 begin
-    if(Rst)
+    if(Rst_PwrDn)
         PwrDn <= #1 0;
     else if(CE_PwrDn)
-        PwrDn <= #1 1;
+        PwrDn <= #1 ~0;
 end
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -532,14 +575,14 @@ end
 
 ////////////////////////////////////////////////////////////////////////////////
 //
-// Special Function Registers
+//  Special Function Registers
 //
 
 assign CE_PA = CE & WE_STATUS;
 
 always @(posedge Clk)
 begin
-    if(POR)
+    if(Rst)
         PA  <= #1 0;
     else if(CE_PA)
         PA  <= #1 DO[7:5];
@@ -549,8 +592,8 @@ assign CE_FSR = CE & WE_FSR;
 
 always @(posedge Clk)
 begin
-    if(POR)
-        FSR <= #1 0;
+    if(Rst)
+        FSR <= #1 {1'b1, {7{1'b0}}};
     else if(CE_FSR)
         FSR <= #1 DO;
 end
@@ -592,14 +635,14 @@ assign PS   = OPTION[2:0];   // Pre-Scaler Count: Timer0 - 2^(PS+1), WDT - 2^PS
 
 // WDT - Watchdog Timer
 
-assign WDT_Rst = Rst | WDTClr;
+assign WDT_Rst = POR | MCLR | WDTClr | WDT_TC;
 
 always @(posedge Clk)
 begin
     if(WDT_Rst)
-        WDT <= #1 0;
+        WDT <= #1 (pWDT_TOVal - 1);
     else if(WDTE)
-        WDT <= #1 WDT + 1;
+        WDT <= #1 WDT - 1;
 end
 
 //  WDT synchronous TC FF
@@ -608,8 +651,8 @@ always @(posedge Clk)
 begin
     if(WDT_Rst)
         WDT_TC <= #1 0;
-    else
-        WDT_TC <= #1 &WDT;
+    else if(WDTE)
+        WDT_TC <= #1 (WDT == 1);
 end
 
 // WDT Timeout multiplexer
