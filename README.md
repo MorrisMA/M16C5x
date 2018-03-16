@@ -25,7 +25,7 @@ Read-modify-operations on the I/O ports do not generate read strobes. Read
 strobes of the three I/O ports are generated only if the ports are being read 
 using MOVF xxx,0 instructions. Similarly, the write enables for the three I/O 
 ports are asserted whenever the ports are updated. This occurs during MOVWF 
-instructions, or during read- modify-write operations such as XORF, MOVF, etc.
+instructions, or during read-modify-write operations such as XORF, MOVF, etc.
 
 (Clarification: RMW instructions do not generate read strobes in order to 
 prevent the read portion of the operation from advancing a FIFO or generating 
@@ -83,7 +83,7 @@ Also provided is the MPLAB project and the source files used to create the
 memory initialization files for testing the microcomputer application. These 
 files are found in the MPLAB subdirectory of the Code directory. An example 
 CCS C project is also included that performs the same functions as the 
-assembly langugage version test programs included in the MPLAB subdirectory.
+assembly language version test programs included in the MPLAB subdirectory.
 
 Finally, the configuration of the Xilinx tools used to synthesize, map, place, 
 and route are captured in the the TCL file:
@@ -113,7 +113,7 @@ The primary objective of the M16C5Xv2 project is to synthesize a processor
 core, 4kW of program memory, a buffered SPI master, and two (2) buffered UART 
 into a Xilinx XC3S200A-5VQG100I FPGA. The present implementation includes the 
 P16C5x core, 4kW of program memory, a dual-channel SPI Master I/F, and two 
-SSP- compatible UARTs supporting baud rates from 3M bps to less than 1200 bps 
+SSP-compatible UARTs supporting baud rates from 3M bps to less than 1200 bps 
 using a clock frequency of 48.0000 MHz for the core and UART. (Note: synthesis 
 and PAR allow an input frequency of 60 MHz for a -4 Spartan-3A FPGA.)
 
@@ -171,8 +171,8 @@ send/receive data using the FIFOs at rates of 115,200 baud or greater.
 
 ### Release 2.0
 
-In this release, the UART has been addded. An update has been made to the SPI 
-I/F Master function; update correct fault with the framing of SPI Mode 3 
+In this release, the UART has been added. An update has been made to the SPI 
+I/F Master function; update corrected fault with the framing of SPI Mode 3 
 frames with shift lengths greater than 1 byte. A correction, not fully tested 
 or verified, was made to the P16C5x core to correct anomalous behavior for 
 BTFSC/BTFSS instructions.
@@ -182,11 +182,11 @@ interface is underway.
 
 ### Release 2.1
 
-Testing with an M16C5x core processor program assembled using 
-MPLAB and ISIM showed that polling of the UART status register to determine 
-whether the transmit FIFO was empty or not (using the iTFE interrupt flag) 
-would clear the generated interrupt flags before they had actually been 
-captured and shifted in the SSP response to the core.
+Testing with an M16C5x core processor program assembled using MPLAB and ISIM
+showed that polling of the UART status register to determine whether the
+transmit FIFO was empty or not (using the iTFE interrupt flag) would clear the
+generated interrupt flags before they had actually been captured and shifted in
+the SSP response to the core.
 
 This indicated a clock domain crossing issue in the interrupt clearing logic. 
 This release fixes that issue. Previous use of the UART does not poll the USR, 
@@ -198,7 +198,7 @@ did not present the conditions under which the fault manifests.
 The correction required registering the USR data on the SSP clock domain, and 
 qualifying the clearing of the interrupt flags on the basis of whether the 
 flag is set in both domains when the USR is read. The addition of the register 
-reduced the logic utilization, and only a small additonal time delay was 
+reduced the logic utilization, and only a small additional time delay was 
 incurred. The resulting design is still able to fit into a Spartan 3A XC3S50A-
 4VQG100I FPGA.
 
@@ -210,7 +210,7 @@ be used to set the baud rate from 1/16 of the processor clock. With a
 Set the default baud rate to 9600 for a 58.9824 MHz UART clock.
 
 Utilization for a XC3S50A-4VQG100I FPGA is 100%. The 128 byte LUT-based 
-receive FIFO can be reduced to accomodate some additional functions. Synthesis 
+receive FIFO can be reduced to accommodate some additional functions. Synthesis 
 and MAP/PAR able to implement the design. There is also some place holder 
 logic that can be used for other purposes.
 
@@ -225,7 +225,7 @@ default settings be adjusted. All other parameters remain the same.
 
 Also added a Block RAM Memory Map file to the project. Utilized Xilinx's 
 Data2MEM tool to insert modified program contents into the affected Block RAMs 
-using MEM files dereived from standard MPLAB outputs. Tutorial on this subject 
+using MEM files derived from standard MPLAB outputs. Tutorial on this subject 
 is being prepared and will be released on an associated Wiki soon.
 
 ### Release 2.3
@@ -236,7 +236,7 @@ frequency unlike Release 2.2 where Clk_UART was set to the system clock
 frequency.
 
 Also added asynchronous resets to several registers in the UART so that it 
-would simulate correcly with ISim. Direct control of the UART prescaler and 
+would simulate correctly with ISim. Direct control of the UART prescaler and 
 divider was previously untested using the simulation. With that change to the 
 baud rate generator made to UART, the reset/power-on values of these two logic 
 functions are unknown. The unknowns, "X", propagate through the baud rate 
@@ -256,7 +256,7 @@ Otherwise, the Receive FIFO is not read which prevents the inadvertent
 clearing of the FIFO empty flag.
 
 Test Program 4, M16C5x_Tst4.asm, is used to test the receive signal path. 
-Hyperterminal and Tera Term were used to sent (without local echo) several 
+Hyper-Terminal and Tera Term were used to sent (without local echo) several 
 large text files through the M16C5x UART. The test program polls the RDR, and 
 if a character is received without error, then upper case are converted to 
 lower case characters, and vice-versa. Using a Keyspan Quad Port USB serial 
@@ -264,15 +264,9 @@ port adapter, characters were sent to the M16C5x at a rate of 921.6k baud, the
 highest programmable baud rate supported by the Keyspan device. The echo back 
 to terminal emulator appeared to be without error. (**Note:** _the two wire 
 RS-232 mode of the UART was used for this test. The ADM3232 charge-pump RS-232 
-transceiver appeared to work well at this frequency. Som slew rate limiting is 
+transceiver appeared to work well at this frequency. Some slew rate limiting is 
 visible on an O-scope, but it appears to be tolerable. These tests were 
 conducted while the core was operating at **117.9648 MHz**._)
-
-This release is expected to be the last public release of this soft-core 
-microcomputer. The released core and peripherals are sufficient to demonstrate 
-a non-trivial FPGA implementation of a soft-core microcomputer. Further 
-developments will be focused on improving access to the internal block RAMs, 
-and improving the I/O capabilities of the released core.
 
 ### Release 2.5
 
