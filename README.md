@@ -21,7 +21,7 @@ buffers using a bidirectional data bus. The TRIS I/O control registers are
 similarly supported. Thus, the core's user is able to map the TRIS and I/O 
 port registers in a manner appropriate to the intended application.
 
-Read-modify-operations on the I/O ports do not generate read strobes. Read 
+Read-modify-write operations on the I/O ports do not generate read strobes. Read 
 strobes of the three I/O ports are generated only if the ports are being read 
 using MOVF xxx,0 instructions. Similarly, the write enables for the three I/O 
 ports are asserted whenever the ports are updated. This occurs during MOVWF 
